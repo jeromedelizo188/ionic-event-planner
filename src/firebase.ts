@@ -51,10 +51,24 @@ let socketConnected = false;
 
 if (isFirebaseConfigured && database) {
   onValue(databaseRef(database, '.info/connected'), (snapshot) => {
-    socketConnected = snapshot.val() === true;
-    if (!socketConnected && connectionState.value !== 'blocked') {
-      connectionState.value = 'disconnected';
-      connectionError.value = 'No connection to the Firebase servers.';
+    const connected = snapshot.val() === true;
+    socketConnected = connected;
+    if (!connected) {
+      if (connectionState.value !== 'blocked') {
+        connectionState.value = 'disconnected';
+        connectionError.value = 'No connection to the Firebase servers. Reconnecting automatically...';
+      }
+      return;
+    }
+    // Socket is back up: probe the database so the badge reflects
+    // real reads/writes without the user having to tap anything.
+    if (
+      connectionState.value === 'disconnected' ||
+      connectionState.value === 'connecting'
+    ) {
+      connectionState.value = 'connecting';
+      connectionError.value = '';
+      void refreshConnection();
     }
   });
 }
