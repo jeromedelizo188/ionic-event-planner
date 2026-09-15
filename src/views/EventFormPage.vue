@@ -95,9 +95,10 @@ import {
   IonTextarea,
   IonTitle,
   IonToolbar,
+  alertController,
 } from '@ionic/vue';
 import { EVENT_STATUSES, type EventItem } from '@/types/event';
-import { createEvent, getEvent, updateEvent } from '@/services/eventService';
+import { createEvent, getErrorMessage, getEvent, updateEvent } from '@/services/eventService';
 
 const route = useRoute();
 const router = useRouter();
@@ -140,12 +141,21 @@ async function onSubmit() {
     eventTimestamp: toTimestamp(datetimeIso.value),
   };
 
-  if (isEdit.value && editId.value) {
-    await updateEvent(editId.value, data);
-  } else {
-    await createEvent(data);
+  try {
+    if (isEdit.value && editId.value) {
+      await updateEvent(editId.value, data);
+    } else {
+      await createEvent(data);
+    }
+    router.replace('/tabs/home');
+  } catch (err) {
+    const alert = await alertController.create({
+      header: 'Save Failed',
+      message: getErrorMessage(err),
+      buttons: ['OK'],
+    });
+    await alert.present();
   }
-  router.replace('/tabs/home');
 }
 
 onMounted(onMountedLoad);

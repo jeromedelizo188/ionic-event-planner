@@ -24,6 +24,13 @@
       </div>
 
       <template v-else>
+        <div v-if="loadError" class="sk-panel error-panel">
+          <p class="error-text">{{ loadError }}</p>
+          <ion-button size="small" fill="solid" class="error-retry" @click="loadEvents">
+            Retry
+          </ion-button>
+        </div>
+
         <div class="stack">
           <!-- Hero: next upcoming event -->
           <div v-if="nextEvent" class="sk-panel hero" @click="goTo(`/event/${nextEvent.id}`)">
@@ -119,6 +126,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import {
+  IonButton,
   IonButtons,
   IonContent,
   IonHeader,
@@ -130,18 +138,25 @@ import {
   IonSpinner,
   IonTitle,
   IonToolbar,
+  onIonViewWillEnter,
 } from '@ionic/vue';
 import { add } from 'ionicons/icons';
-import type { EventItem } from '@/types/event';
-import { getEvents } from '@/services/eventService';
+import {
+  eventsLoaded,
+  liveEvents,
+  liveEventsError,
+  refreshNow,
+  startEventsListening,
+} from '@/services/eventService';
 import { getCountdown, pad2, startOfDay } from '@/utils/format';
 import StatusBadge from '@/components/StatusBadge.vue';
 import ConnectionBadge from '@/components/ConnectionBadge.vue';
 
 const router = useRouter();
 
-const loading = ref(true);
-const events = ref<EventItem[]>([]);
+const loading = computed(() => !eventsLoaded.value);
+const events = liveEvents;
+const loadError = liveEventsError;
 const searchQuery = ref('');
 const now = ref(Date.now());
 let clockTimer: number | undefined;
@@ -196,18 +211,16 @@ function goTo(path: string) {
 }
 
 async function loadEvents() {
-  loading.value = true;
-  try {
-    events.value = await getEvents();
-  } finally {
-    loading.value = false;
-  }
+  await refreshNow();
+  startEventsListening();
 }
 
 async function onRefresh(event: { target: { complete: () => void } }) {
   await loadEvents();
   event.target.complete();
 }
+
+onIonViewWillEnter(loadEvents);
 
 onMounted(() => {
   loadEvents();
@@ -226,6 +239,32 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   padding: 3rem 0;
+}
+
+.error-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px;
+  padding: 12px 14px;
+  border-color: rgba(207, 100, 84, 0.35);
+  background: rgba(255, 240, 236, 0.55);
+}
+
+.error-text {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #a4473a;
+  line-height: 1.4;
+}
+
+.error-retry {
+  --border-radius: var(--sk-radius-pill);
+  --background: #cf6454;
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
 /* Stacked card layers */

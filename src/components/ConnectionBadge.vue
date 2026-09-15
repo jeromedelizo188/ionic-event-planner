@@ -1,5 +1,5 @@
 <template>
-  <span class="conn-badge" :class="stateClass">
+  <span class="conn-badge" :class="stateClass" @click="showInfo">
     <span class="dot"></span>
     <span class="label">{{ label }}</span>
   </span>
@@ -7,33 +7,87 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { connectionState } from '@/firebase';
+import { alertController } from '@ionic/vue';
+import { connectionError, connectionState, refreshConnection } from '@/firebase';
+
+const state = connectionState;
 
 const label = computed(() => {
-  switch (connectionState.value) {
+  switch (state.value) {
     case 'connected':
       return 'Live DB';
     case 'connecting':
       return 'Connecting';
     case 'disconnected':
       return 'Offline';
+    case 'blocked':
+      return 'Rules blocked';
     default:
       return 'Demo data';
   }
 });
 
 const stateClass = computed(() => {
-  switch (connectionState.value) {
+  switch (state.value) {
     case 'connected':
       return 'is-connected';
     case 'connecting':
       return 'is-connecting';
     case 'disconnected':
       return 'is-offline';
+    case 'blocked':
+      return 'is-blocked';
     default:
       return 'is-demo';
   }
 });
+
+async function showInfo() {
+  await refreshConnection();
+  const status = state.value;
+  const detail = connectionError.value;
+
+  let header = 'Database Status';
+  let message = detail;
+
+  switch (status) {
+    case 'connected':
+      header = 'Connected';
+      message = 'Firebase Realtime Database is reachable and accepting reads and writes.';
+      break;
+    case 'connecting':
+      header = 'Checking';
+      message = 'Testing access to the database...';
+      break;
+    case 'disconnected':
+      header = 'Offline';
+      message = detail || 'No connection to the Firebase servers. Check your internet connection.';
+      break;
+    case 'blocked':
+      header = 'Database Rules Blocking Access';
+      message =
+        (detail ? `${detail}\n\n` : '') +
+        'The app signs in anonymously. In the Firebase console, enable it under ' +
+        'Authentication > Sign-in method > Anonymous, then set Realtime Database > Rules to:\n' +
+        '{ "rules": { ".read": "auth != null", ".write": "auth != null" } }\n\n' +
+        'For a public test-mode database instead, use:\n{ "rules": { ".read": true, ".write": true } }';
+      break;
+    case 'not-configured':
+      header = 'Not Configured';
+      message = 'No Firebase credentials found in .env. Add your apiKey and databaseURL, then restart the dev server.';
+      break;
+  }
+
+  const alert = await alertController.create({
+    header,
+    message,
+    buttons: [
+      { text: 'Close', role: 'cancel' },
+      ...(status !== 'not-configured' ? [{ text: 'Re-check', handler: () => void refreshConnection() }] : []),
+    ],
+  });
+  await alert.present();
+}
 </script>
 
 <style scoped>
@@ -48,6 +102,9 @@ const stateClass = computed(() => {
   backdrop-filter: var(--sk-panel-blur);
   -webkit-backdrop-filter: var(--sk-panel-blur);
   box-shadow: var(--sk-raised-soft);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .dot {
@@ -71,8 +128,12 @@ const stateClass = computed(() => {
   box-shadow: 0 0 6px rgba(63, 158, 99, 0.7);
 }
 
-.is-connecting .dot {
+.is-connecting .dot,
+.is-blocked .dot {
   background: #d7c36a;
+}
+
+.is-connecting .dot {
   animation: sk-pulse 1s ease-in-out infinite;
 }
 

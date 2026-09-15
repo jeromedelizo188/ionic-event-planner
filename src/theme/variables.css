@@ -41,14 +41,18 @@
   --ion-color-medium-shade: #7e8d7a;
   --ion-color-medium-tint: #9aa995;
 
-  /* --- App chrome: calm white --- */
-  --ion-background-color: transparent;
+  /* --- App chrome: calm white ---
+     NOTE: keep the global background OPAQUE so Ionic overlays
+     (alerts, action-sheets, date pickers) never blend into the
+     glass backdrop. The gradient wall shows through ion-page /
+     ion-content, which are set to transparent below. */
+  --ion-background-color: #ffffff;
   --ion-background-color-rgb: 255, 255, 255;
   --ion-text-color: #31443a;
   --ion-text-color-rgb: 49, 68, 58;
-  --ion-item-background: transparent;
-  --ion-toolbar-background: transparent;
-  --ion-card-background: transparent;
+  --ion-item-background: #ffffff;
+  --ion-toolbar-background: #ffffff;
+  --ion-card-background: #ffffff;
   --ion-border-color: rgba(255, 255, 255, 0.6);
 
   --ion-font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue',
@@ -227,4 +231,53 @@ ion-searchbar.sk-search {
   --clear-button-color: var(--sk-accent);
   backdrop-filter: var(--sk-panel-blur);
   -webkit-backdrop-filter: var(--sk-panel-blur);
+}
+
+/* ============ Opaque Ionic overlays (alerts, action sheets, popovers, date pickers) ============
+   These render ABOVE the frosted glass content. They must be solid so they
+   never visually merge with the background behind them. */
+
+ion-backdrop {
+  --backdrop-opacity: 0.4;
+}
+
+ion-alert {
+  --alert-background: #ffffff;
+  --alert-button-color: var(--sk-accent);
+  --alert-button-background-focused: var(--sk-accent-tint);
+}
+
+ion-alert .alert-wrapper {
+  border-radius: var(--sk-radius-lg);
+  box-shadow: var(--sk-raised-shadow);
+}
+
+ion-action-sheet {
+  --action-sheet-background: rgba(255, 255, 255, 0.98);
+  --action-sheet-button-color: var(--sk-text);
+  --action-sheet-button-background-selected: var(--sk-accent-tint);
+  --action-sheet-cancel-button-color: var(--sk-accent);
+}
+
+ion-action-sheet .action-sheet-group {
+  border-radius: var(--sk-radius-lg);
+}
+
+ion-popover {
+  --backdrop-opacity: 0.3;
+  --background: #ffffff;
+}
+
+ion-popover ion-content,
+ion-popover .popover-content {
+  --background: #ffffff;
+}
+
+ion-datetime {
+  --background: #ffffff;
+  --wheel-highlight-background: var(--sk-accent-tint);
+}
+
+ion-select-popover .popover-content {
+  --background: #ffffff;
 }

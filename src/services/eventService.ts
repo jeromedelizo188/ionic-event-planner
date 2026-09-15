@@ -1,37 +1,42 @@
-import { child, get, push, ref, remove as dbRemove, set, update } from 'firebase/database';
+import {
+  child,
+  get,
+  onValue,
+  push,
+  ref,
+  remove as dbRemove,
+  set,
+  update,
+} from 'firebase/database';
+import type { Ref } from 'vue';
+import { ref as vueRef } from 'vue';
 import { database, isFirebaseConfigured } from '@/firebase';
 import type { EventItem, NewEvent } from '@/types/event';
 
 const EVENTS_NODE = 'events';
 
-const mockEvents: EventItem[] = [
-  {
-    id: 'mock-1',
-    name: 'Product Launch',
-    eventTimestamp: new Date().getTime() + 7 * 24 * 60 * 60 * 1000,
-    venue: 'Manila Convention Center',
-    description: 'Official launch of our new product line.',
-    status: 'upcoming',
-  },
-  {
-    id: 'mock-2',
-    name: 'Team Building',
-    eventTimestamp: new Date().getTime() - 2 * 24 * 60 * 60 * 1000,
-    venue: 'Tagaytay Highlands',
-    description: 'Annual team building activity for all departments.',
-    status: 'completed',
-  },
-  {
-    id: 'mock-3',
-    name: 'Planning Sync',
-    eventTimestamp: new Date().getTime() + 3 * 24 * 60 * 60 * 1000,
-    venue: 'Office Boardroom 2',
-    description: 'Quarterly planning sync with stakeholders.',
-    status: 'ongoing',
-  },
-];
-
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+export function getErrorMessage(err: unknown): string {
+  if (err && typeof err === 'object') {
+    const code = (err as { code?: unknown }).code;
+    if (code === 'database/permission-denied') {
+      return 'The database rules are blocking access. The app signs in anonymously: enable it under Firebase Authentication > Sign-in method > Anonymous, then allow reads/writes in Realtime Database > Rules (e.g. ".read": "auth != null", ".write": "auth != null", or public test mode).';
+    }
+    if (
+      typeof code === 'string' &&
+      (code.includes('unavailable') ||
+        code.includes('network') ||
+        code === 'database/disconnected')
+    ) {
+      return 'Cannot reach Firebase. Check your internet connection and try again.';
+    }
+    if (code === 'database/invalid-path' || code === 'database/invalid-data') {
+      return 'The event data is invalid. Review the details and try again.';
+    }
+  }
+  return err instanceof Error && err.message
+    ? err.message
+    : 'Something went wrong. Please try again.';
+}
 
 function snapshotToEvents(snapshot: { forEach: (cb: (child: { key: string | null; val: () => unknown }) => void) => void }): EventItem[] {
   const events: EventItem[] = [];
@@ -43,21 +48,59 @@ function snapshotToEvents(snapshot: { forEach: (cb: (child: { key: string | null
   return events;
 }
 
-export async function getEvents(): Promise<EventItem[]> {
+/* ------------------------------------------------------------------ */
+/* Realtime store: the events node is observed, so the UI updates      */
+/* automatically whenever the database changes (from any device).      */
+/* ------------------------------------------------------------------ */
+
+export const liveEvents: Ref<EventItem[]> = vueRef([]);
+export const liveEventsError: Ref<string> = vueRef('');
+export const eventsLoaded: Ref<boolean> = vueRef(false);
+
+let eventsListenerStarted = false;
+
+export function startEventsListening(): void {
   if (!isFirebaseConfigured || !database) {
-    await delay(400);
-    return [...mockEvents];
+    liveEvents.value = [];
+    liveEventsError.value = '';
+    eventsLoaded.value = true;
+    return;
   }
+  if (eventsListenerStarted) return;
+  eventsListenerStarted = true;
+  onValue(
+    ref(database, EVENTS_NODE),
+    (snapshot) => {
+      liveEvents.value = snapshot.exists() ? snapshotToEvents(snapshot) : [];
+      liveEventsError.value = '';
+      eventsLoaded.value = true;
+    },
+    (err) => {
+      liveEventsError.value = getErrorMessage(err);
+      eventsLoaded.value = true;
+    }
+  );
+}
+
+export async function refreshNow(): Promise<void> {
+  try {
+    liveEvents.value = await getEvents();
+    liveEventsError.value = '';
+    eventsLoaded.value = true;
+  } catch (err) {
+    liveEventsError.value = getErrorMessage(err);
+  }
+}
+
+export async function getEvents(): Promise<EventItem[]> {
+  if (!isFirebaseConfigured || !database) return [];
   const snapshot = await get(child(ref(database), EVENTS_NODE));
   if (!snapshot.exists()) return [];
   return snapshotToEvents(snapshot);
 }
 
 export async function getEvent(id: string): Promise<EventItem | null> {
-  if (!isFirebaseConfigured || !database) {
-    await delay(200);
-    return mockEvents.find((event) => event.id === id) ?? null;
-  }
+  if (!isFirebaseConfigured || !database) return null;
   const snapshot = await get(child(ref(database), `${EVENTS_NODE}/${id}`));
   if (!snapshot.exists()) return null;
   return { id, ...(snapshot.val() as Omit<EventItem, 'id'>) };
@@ -65,10 +108,7 @@ export async function getEvent(id: string): Promise<EventItem | null> {
 
 export async function createEvent(data: NewEvent): Promise<EventItem> {
   if (!isFirebaseConfigured || !database) {
-    await delay(300);
-    const event: EventItem = { id: `mock-${mockEvents.length + 1}`, ...data };
-    mockEvents.unshift(event);
-    return event;
+    throw new Error('Firebase Realtime Database is not configured.');
   }
   const newRef = push(ref(database, EVENTS_NODE));
   await set(newRef, data);
@@ -77,20 +117,14 @@ export async function createEvent(data: NewEvent): Promise<EventItem> {
 
 export async function updateEvent(id: string, data: NewEvent): Promise<void> {
   if (!isFirebaseConfigured || !database) {
-    await delay(300);
-    const index = mockEvents.findIndex((event) => event.id === id);
-    if (index !== -1) mockEvents[index] = { id, ...data };
-    return;
+    throw new Error('Firebase Realtime Database is not configured.');
   }
   await update(ref(database, `${EVENTS_NODE}/${id}`), data);
 }
 
 export async function deleteEvent(id: string): Promise<void> {
   if (!isFirebaseConfigured || !database) {
-    await delay(300);
-    const index = mockEvents.findIndex((event) => event.id === id);
-    if (index !== -1) mockEvents.splice(index, 1);
-    return;
+    throw new Error('Firebase Realtime Database is not configured.');
   }
   await dbRemove(ref(database, `${EVENTS_NODE}/${id}`));
 }

@@ -1,5 +1,13 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
-import { getDatabase, Database, onValue, ref as databaseRef } from 'firebase/database';
+import { getAuth, signInAnonymously, Auth } from 'firebase/auth';
+import {
+  child,
+  get,
+  getDatabase,
+  Database,
+  onValue,
+  ref as databaseRef,
+} from 'firebase/database';
 import { ref as vueRef } from 'vue';
 
 const firebaseConfig = {
@@ -18,22 +26,74 @@ export const isFirebaseConfigured = Boolean(
 
 let firebaseApp: FirebaseApp | null = null;
 let database: Database | null = null;
+let auth: Auth | null = null;
 
 if (isFirebaseConfigured) {
   firebaseApp = initializeApp(firebaseConfig);
   database = getDatabase(firebaseApp);
+  auth = getAuth(firebaseApp);
 }
 
-export type ConnectionState = 'not-configured' | 'connecting' | 'connected' | 'disconnected';
+export type ConnectionState =
+  | 'not-configured'
+  | 'connecting'
+  | 'connected'
+  | 'disconnected'
+  | 'blocked';
 
 export const connectionState = vueRef<ConnectionState>(
   isFirebaseConfigured ? 'connecting' : 'not-configured'
 );
 
+export const connectionError = vueRef('');
+
+let socketConnected = false;
+
 if (isFirebaseConfigured && database) {
   onValue(databaseRef(database, '.info/connected'), (snapshot) => {
-    connectionState.value = snapshot.val() === true ? 'connected' : 'disconnected';
+    socketConnected = snapshot.val() === true;
+    if (!socketConnected && connectionState.value !== 'blocked') {
+      connectionState.value = 'disconnected';
+      connectionError.value = 'No connection to the Firebase servers.';
+    }
   });
 }
 
-export { firebaseApp, database };
+async function ensureSignedIn(): Promise<void> {
+  if (!auth || auth.currentUser) return;
+  try {
+    await signInAnonymously(auth);
+  } catch {
+    // Sign-in may be unavailable (e.g. console provider disabled);
+    // the probe below will surface the real database error.
+  }
+}
+
+export async function refreshConnection(): Promise<void> {
+  if (!isFirebaseConfigured || !database) {
+    connectionState.value = 'not-configured';
+    connectionError.value = '';
+    return;
+  }
+  if (!socketConnected) {
+    connectionState.value = 'disconnected';
+    connectionError.value = 'No connection to the Firebase servers.';
+    return;
+  }
+  connectionState.value = 'connecting';
+  try {
+    await ensureSignedIn();
+    await get(child(databaseRef(database), 'events'));
+    connectionState.value = 'connected';
+    connectionError.value = '';
+  } catch (err) {
+    connectionState.value = 'blocked';
+    connectionError.value = err instanceof Error ? err.message : String(err);
+  }
+}
+
+if (isFirebaseConfigured) {
+  void refreshConnection();
+}
+
+export { firebaseApp, database, auth };

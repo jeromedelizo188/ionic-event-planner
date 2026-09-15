@@ -7,10 +7,18 @@
     <!-- Floating dock: detached pill bar + separate add orb -->
     <div class="sk-dock">
       <ion-tab-bar class="sk-pillbar">
-        <ion-tab-button tab="home" href="/tabs/home">
+        <ion-tab-button
+          tab="home"
+          :selected="currentTab === 'home'"
+          @click.prevent="goTab('home')"
+        >
           <ion-icon :icon="homeOutline"></ion-icon>
         </ion-tab-button>
-        <ion-tab-button tab="calendar" href="/tabs/calendar">
+        <ion-tab-button
+          tab="calendar"
+          :selected="currentTab === 'calendar'"
+          @click.prevent="goTab('calendar')"
+        >
           <ion-icon :icon="calendarOutline"></ion-icon>
         </ion-tab-button>
       </ion-tab-bar>
@@ -23,11 +31,21 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router';
+import { computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { IonIcon, IonPage, IonRouterOutlet, IonTabBar, IonTabButton, IonTabs } from '@ionic/vue';
 import { add, calendarOutline, homeOutline } from 'ionicons/icons';
 
 const router = useRouter();
+const route = useRoute();
+
+const currentTab = computed(() =>
+  route.path.startsWith('/tabs/calendar') ? 'calendar' : 'home'
+);
+
+function goTab(tab: string) {
+  router.push(tab === 'calendar' ? '/tabs/calendar' : '/tabs/home');
+}
 
 function goCreate() {
   router.push('/event/new');
@@ -45,7 +63,7 @@ function goCreate() {
   justify-content: center;
   gap: 14px;
   padding: 0 20px;
-  z-index: 1000;
+  z-index: 800;
   pointer-events: none;
 }
 

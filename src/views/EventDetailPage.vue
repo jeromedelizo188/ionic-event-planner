@@ -84,7 +84,7 @@
       </div>
 
       <div v-else class="empty-state">
-        <p class="sk-title">Event not found</p>
+        <p class="sk-title">{{ loadError || 'Event not found' }}</p>
       </div>
     </ion-content>
   </ion-page>
@@ -105,10 +105,11 @@ import {
   IonTitle,
   IonToolbar,
   alertController,
+  onIonViewWillEnter,
 } from '@ionic/vue';
 import { calendarOutline, createOutline, locationOutline, trashOutline } from 'ionicons/icons';
 import type { EventItem } from '@/types/event';
-import { deleteEvent, getEvent } from '@/services/eventService';
+import { deleteEvent, getErrorMessage, getEvent } from '@/services/eventService';
 import { formatDate } from '@/utils/format';
 import StatusBadge from '@/components/StatusBadge.vue';
 
@@ -117,6 +118,7 @@ const router = useRouter();
 
 const loading = ref(true);
 const event = ref<EventItem | null>(null);
+const loadError = ref('');
 
 function dayNum(timestamp: number): number {
   return new Date(timestamp).getDate();
@@ -145,8 +147,12 @@ function highlightDesc(desc: string, venue: string): string {
 
 async function loadEvent() {
   loading.value = true;
+  loadError.value = '';
   try {
     event.value = await getEvent(String(route.params.id));
+  } catch (err) {
+    event.value = null;
+    loadError.value = getErrorMessage(err);
   } finally {
     loading.value = false;
   }
@@ -162,14 +168,25 @@ async function onConfirmDelete() {
         text: 'Delete',
         cssClass: 'danger',
         handler: async () => {
-          if (event.value) await deleteEvent(event.value.id);
-          router.replace('/tabs/home');
+          try {
+            if (event.value) await deleteEvent(event.value.id);
+            router.replace('/tabs/home');
+          } catch (err) {
+            const fail = await alertController.create({
+              header: 'Delete Failed',
+              message: getErrorMessage(err),
+              buttons: ['OK'],
+            });
+            await fail.present();
+          }
         },
       },
     ],
   });
   await alert.present();
 }
+
+onIonViewWillEnter(loadEvent);
 
 onMounted(loadEvent);
 </script>
