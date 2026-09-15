@@ -1,0 +1,230 @@
+/* =========================================================
+   Event Planner - Green Glassmorphism Theme
+   Soft green -> pale-yellow mesh gradient, frosted white
+   glass panels, heavy pill rounding, calm green-only accents
+   ========================================================= */
+
+:root {
+  /* --- Ionic core overrides (one green hue family) --- */
+  --ion-color-primary: #58a76f;
+  --ion-color-primary-rgb: 88, 167, 111;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #4d9360;
+  --ion-color-primary-tint: #69b07f;
+
+  --ion-color-success: #3f9e63;
+  --ion-color-success-rgb: 63, 158, 99;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #388b57;
+  --ion-color-success-tint: #52a872;
+
+  --ion-color-warning: #d7c36a;
+  --ion-color-warning-rgb: 215, 195, 106;
+  --ion-color-warning-contrast: #ffffff;
+  --ion-color-warning-contrast-rgb: 255, 255, 255;
+  --ion-color-warning-shade: #bdaa52;
+  --ion-color-warning-tint: #dbc97a;
+
+  --ion-color-danger: #cf6454;
+  --ion-color-danger-rgb: 207, 100, 84;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #b7584a;
+  --ion-color-danger-tint: #d4736a;
+
+  --ion-color-medium: #8fa08b;
+  --ion-color-medium-rgb: 143, 160, 139;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #7e8d7a;
+  --ion-color-medium-tint: #9aa995;
+
+  /* --- App chrome: calm white --- */
+  --ion-background-color: transparent;
+  --ion-background-color-rgb: 255, 255, 255;
+  --ion-text-color: #31443a;
+  --ion-text-color-rgb: 49, 68, 58;
+  --ion-item-background: transparent;
+  --ion-toolbar-background: transparent;
+  --ion-card-background: transparent;
+  --ion-border-color: rgba(255, 255, 255, 0.6);
+
+  --ion-font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue',
+    sans-serif;
+
+  /* --- Mesh gradient wall (green -> pale yellow) --- */
+  --sk-bg-grad: radial-gradient(
+      ellipse 110% 70% at 10% -10%,
+      rgba(118, 198, 138, 0.34) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 100% 70% at 95% -5%,
+      rgba(226, 214, 130, 0.34) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 120% 80% at 85% 110%,
+      rgba(146, 208, 158, 0.28) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 90% 60% at 5% 105%,
+      rgba(226, 218, 140, 0.3) 0%,
+      transparent 55%
+    ),
+    linear-gradient(165deg, #eef7ef 0%, #f6f8e8 55%, #fbf7e4 100%);
+
+  /* --- Glass (frosted translucent white) --- */
+  --sk-glass-level-1: rgba(255, 255, 255, 0.62);
+  --sk-glass-level-2: rgba(255, 255, 255, 0.42);
+  --sk-glass-level-3: rgba(255, 255, 255, 0.26);
+  --sk-glass-border: rgba(255, 255, 255, 0.85);
+  --sk-glass-sheen: rgba(255, 255, 255, 0.9);
+
+  --sk-panel-bg: linear-gradient(150deg, var(--sk-glass-level-1), var(--sk-glass-level-2));
+  --sk-panel-border: 1px solid var(--sk-glass-border);
+  --sk-panel-blur: blur(18px) saturate(150%);
+
+  /* Soft, low-contrast shadows */
+  --sk-raised-shadow: 0 8px 30px rgba(60, 100, 70, 0.16), inset 0 1px 0 var(--sk-glass-sheen);
+  --sk-raised-soft: 0 4px 16px rgba(60, 100, 70, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --sk-pressed-shadow: 0 2px 8px rgba(60, 100, 70, 0.14);
+  --sk-inset-shadow: inset 0 2px 8px rgba(60, 100, 70, 0.1);
+
+  /* Heavy corner rounding: cards 20-28px, everything else pills */
+  --sk-radius-lg: 28px;
+  --sk-radius-md: 22px;
+  --sk-radius-sm: 20px;
+  --sk-radius-pill: 999px;
+
+  /* --- Text --- */
+  --sk-text: #31443a;
+  --sk-text-light: #6c7f72;
+  --sk-text-muted: #8da092;
+  --sk-num: #31443a;
+
+  --sk-accent: #58a76f;
+  --sk-accent-shade: #3f8f57;
+  --sk-accent-tint: rgba(88, 167, 111, 0.16);
+
+  /* Marker-style highlight behind text */
+  --sk-marker: rgba(162, 222, 168, 0.55);
+}
+
+/* ============ Glass utility classes ============ */
+
+.sk-panel {
+  border-radius: var(--sk-radius-lg);
+  background: var(--sk-panel-bg);
+  border: var(--sk-panel-border);
+  backdrop-filter: var(--sk-panel-blur);
+  -webkit-backdrop-filter: var(--sk-panel-blur);
+  box-shadow: var(--sk-raised-shadow);
+}
+
+.sk-inset {
+  border-radius: var(--sk-radius-sm);
+  background: var(--sk-glass-level-2);
+  border: 1px solid var(--sk-glass-border);
+  backdrop-filter: var(--sk-panel-blur);
+  -webkit-backdrop-filter: var(--sk-panel-blur);
+  box-shadow: var(--sk-inset-shadow);
+}
+
+.sk-press {
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.sk-press:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--sk-raised-shadow);
+}
+.sk-press:active {
+  transform: translateY(1px) scale(0.99);
+  box-shadow: var(--sk-pressed-shadow);
+}
+
+.sk-num {
+  font-weight: 800;
+  color: var(--sk-num);
+  line-height: 1;
+}
+
+.sk-title {
+  color: var(--sk-text);
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Soft capsule badge */
+.sk-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--sk-radius-pill);
+  padding: 0.3rem 0.9rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  box-shadow: var(--sk-raised-soft);
+}
+
+/* App wall */
+body {
+  background: var(--sk-bg-grad);
+  background-attachment: fixed;
+}
+
+ion-content {
+  --background: transparent;
+}
+ion-page {
+  background: transparent;
+}
+
+/* Frosted header */
+ion-toolbar {
+  --background: var(--sk-glass-level-2);
+  --border-color: transparent;
+  backdrop-filter: var(--sk-panel-blur);
+  -webkit-backdrop-filter: var(--sk-panel-blur);
+}
+
+/* Full-width bar fallback (not used with floating nav) */
+ion-tab-bar.sk-tabbar {
+  height: 72px;
+  --background: var(--sk-glass-level-2);
+  --border: none;
+  background: var(--sk-glass-level-2);
+  border-top: 1px solid var(--sk-glass-border);
+  backdrop-filter: var(--sk-panel-blur);
+  -webkit-backdrop-filter: var(--sk-panel-blur);
+}
+
+ion-tab-button {
+  --color: #9daf9e;
+  --color-selected: var(--sk-accent);
+  --ripple-color: var(--sk-accent-tint);
+}
+
+/* Frosted pill searchbar */
+ion-searchbar.sk-search {
+  --background: var(--sk-glass-level-2);
+  --box-shadow: var(--sk-raised-soft);
+  --border-radius: var(--sk-radius-pill);
+  --color: var(--sk-text);
+  --icon-color: var(--sk-text-light);
+  --placeholder-color: var(--sk-text-muted);
+  --clear-button-color: var(--sk-accent);
+  backdrop-filter: var(--sk-panel-blur);
+  -webkit-backdrop-filter: var(--sk-panel-blur);
+}
