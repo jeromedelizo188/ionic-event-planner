@@ -2,7 +2,11 @@
   <ion-page>
     <ion-header :translucent="true">
       <ion-toolbar>
-        <ion-title>Calendar</ion-title>
+        <div class="topbar">
+          <LogoMark :size="30" />
+          <span class="tb-name">Calendar</span>
+          <ThemeToggle />
+        </div>
       </ion-toolbar>
     </ion-header>
 
@@ -16,47 +20,30 @@
       </div>
 
       <div v-else class="cal-wrap">
-        <div v-if="loadError" class="sk-panel error-panel">
-          <p class="error-text">{{ loadError }}</p>
-          <ion-button size="small" fill="solid" class="error-retry" @click="loadEvents">
-            Retry
-          </ion-button>
+        <div v-if="loadError" class="error-chip">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span class="error-text">{{ loadError }}</span>
+          <button class="error-retry" @click="loadEvents">Retry</button>
         </div>
 
         <div class="sk-panel cal-panel">
           <div class="cal-head">
-            <ion-button
-              fill="clear"
-              class="cal-nav"
-              @click="shiftMonth(-1)"
-              aria-label="Previous month"
-            >
-              <ion-icon slot="icon-only" :icon="chevronBack"></ion-icon>
-            </ion-button>
+            <button class="cal-nav" @click="shiftMonth(-1)" aria-label="Previous month">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
             <div class="cal-title">
-              <span class="title-light">{{ monthLight }}</span>
               <span class="title-bold">{{ monthBold }}</span>
+              <span class="title-light">{{ monthLight }}</span>
             </div>
-            <ion-button
-              fill="clear"
-              class="cal-nav"
-              @click="shiftMonth(1)"
-              aria-label="Next month"
-            >
-              <ion-icon slot="icon-only" :icon="chevronForward"></ion-icon>
-            </ion-button>
+            <button class="cal-nav" @click="shiftMonth(1)" aria-label="Next month">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
           </div>
 
           <div class="cal-today-row">
-            <ion-button
-              v-if="!isCurrentMonth"
-              fill="solid"
-              size="small"
-              class="cal-today-btn"
-              @click="goToday"
-            >
-              Today
-            </ion-button>
+            <button v-if="!isCurrentMonth" class="cal-today-btn" @click="goToday">
+              <i class="fa-solid fa-location-crosshairs"></i> Today
+            </button>
           </div>
 
           <div class="cal-weekdays">
@@ -91,26 +78,32 @@
         </div>
 
         <!-- Selected day events -->
-        <div v-if="selectedEvents.length" class="sk-panel day-panel">
-          <h3 class="day-panel-title sk-title">{{ selectedLabel }}</h3>
+        <template v-if="selectedKey">
+          <h3 class="day-heading">{{ selectedLabel }}</h3>
           <div
             v-for="event in selectedEvents"
             :key="event.id"
-            class="sk-panel sk-press day-event"
+            class="ac-card sk-press"
+            :class="accentOf(event.status)"
             @click="goTo(`/event/${event.id}`)"
           >
-            <div>
-              <p class="event-name sk-title">{{ event.name }}</p>
-              <p class="event-time">{{ formatTime(event.eventTimestamp) }}</p>
+            <div class="day-event">
+              <div class="de-icon">
+                <i class="fa-solid fa-calendar-day"></i>
+              </div>
+              <div class="de-body">
+                <p class="event-name">{{ event.name }}</p>
+                <p class="event-time">{{ formatTime(event.eventTimestamp) }}</p>
+              </div>
+              <StatusBadge :status="event.status" />
             </div>
-            <StatusBadge :status="event.status" />
           </div>
-        </div>
 
-        <div v-else-if="selectedKey" class="sk-panel day-panel">
-          <h3 class="day-panel-title sk-title">{{ selectedLabel }}</h3>
-          <p class="no-events">No events this day.</p>
-        </div>
+          <div v-if="selectedEvents.length === 0" class="sk-panel no-events-card">
+            <i class="fa-solid fa-mug-hot no-events-icon"></i>
+            <p class="no-events">No events this day.</p>
+          </div>
+        </template>
       </div>
     </ion-content>
   </ion-page>
@@ -119,20 +112,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import {
-  IonButton,
-  IonContent,
-  IonHeader,
-  IonIcon,
-  IonPage,
-  IonRefresher,
-  IonRefresherContent,
-  IonSpinner,
-  IonTitle,
-  IonToolbar,
-  onIonViewWillEnter,
-} from '@ionic/vue';
-import { chevronBack, chevronForward } from 'ionicons/icons';
+import { IonContent, IonHeader, IonPage, IonRefresher, IonRefresherContent, IonSpinner, IonToolbar, onIonViewWillEnter } from '@ionic/vue';
 import type { EventItem } from '@/types/event';
 import {
   eventsLoaded,
@@ -143,6 +123,8 @@ import {
 } from '@/services/eventService';
 import { dateKey, startOfDay, WEEKDAYS } from '@/utils/format';
 import StatusBadge from '@/components/StatusBadge.vue';
+import ThemeToggle from '@/components/ThemeToggle.vue';
+import LogoMark from '@/components/LogoMark.vue';
 
 interface DayCell {
   day: number;
@@ -253,6 +235,19 @@ function formatTime(timestamp: number): string {
   });
 }
 
+function accentOf(status: string): string {
+  switch (status) {
+    case 'ongoing':
+      return 'is-amber';
+    case 'completed':
+      return 'is-coral';
+    case 'cancelled':
+      return 'is-grey';
+    default:
+      return 'is-lime';
+  }
+}
+
 function goTo(path: string) {
   router.push(path);
 }
@@ -273,42 +268,64 @@ onMounted(loadEvents);
 </script>
 
 <style scoped>
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px 8px;
+}
+
+.tb-name {
+  margin-right: auto;
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: var(--sk-text);
+  letter-spacing: -0.01em;
+}
+
 .loading {
   display: flex;
   justify-content: center;
-  padding: 3rem 0;
+  padding: 4rem 0;
 }
 
-.error-panel {
+.error-chip {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border-color: rgba(207, 100, 84, 0.35);
-  background: rgba(255, 240, 236, 0.55);
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: var(--sk-radius-pill);
+  background: var(--sk-red-tint);
+  border: 1px solid rgba(229, 101, 79, 0.28);
+  color: var(--sk-coral-deep);
+  font-size: 0.76rem;
 }
 
 .error-text {
-  margin: 0;
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: #a4473a;
-  line-height: 1.4;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .error-retry {
-  --border-radius: var(--sk-radius-pill);
-  --background: #cf6454;
-  font-weight: 700;
+  border: none;
+  background: var(--sk-coral-deep);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.7rem;
+  border-radius: var(--sk-radius-pill);
+  padding: 5px 12px;
+  cursor: pointer;
   flex-shrink: 0;
 }
 
 .cal-wrap {
-  padding: 14px;
+  padding: 6px 14px 90px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 13px;
 }
 
 .cal-panel {
@@ -319,28 +336,40 @@ onMounted(loadEvents);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .cal-title {
   display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  justify-content: center;
-  gap: 8px;
-}
-
-.title-light {
-  font-weight: 300;
-  font-size: 0.95rem;
-  color: var(--sk-text-light);
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
 }
 
 .title-bold {
-  font-weight: 800;
-  font-size: 1.35rem;
+  font-weight: 900;
+  font-size: 1.1rem;
   color: var(--sk-text);
-  line-height: 1;
+}
+
+.title-light {
+  font-weight: 600;
+  font-size: 0.7rem;
+  color: var(--sk-text-muted);
+}
+
+.cal-nav {
+  border: none;
+  background: var(--sk-chip-bg);
+  color: var(--sk-chip-text);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  cursor: pointer;
 }
 
 .cal-today-row {
@@ -350,31 +379,38 @@ onMounted(loadEvents);
 }
 
 .cal-today-btn {
-  --background: var(--sk-accent-tint);
-  --color: var(--sk-accent);
-  --border-radius: var(--sk-radius-pill);
-  --box-shadow: none;
-  font-size: 0.72rem;
-  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   height: 28px;
+  padding: 0 13px;
+  border-radius: var(--sk-radius-pill);
+  background: var(--sk-accent-tint);
+  color: var(--sk-accent-shade);
+  font-size: 0.7rem;
+  font-weight: 800;
 }
 
-.cal-nav {
-  --color: var(--sk-text-light);
-  font-size: 1.3rem;
-  margin: 0;
+html.dark .cal-today-btn {
+  color: var(--sk-lime);
+}
+
+.cal-today-btn i {
+  font-size: 0.66rem;
 }
 
 .cal-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-  margin-bottom: 6px;
+  gap: 2px;
+  margin-bottom: 4px;
 }
 
 .cal-weekdays span {
   text-align: center;
-  font-size: 0.62rem;
+  font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -384,15 +420,15 @@ onMounted(loadEvents);
 .cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 2px;
 }
 
 .cal-cell {
-  min-height: 42px;
+  min-height: 40px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 3px 0;
+  padding: 2px 0;
 }
 
 .cal-cell.is-empty {
@@ -410,36 +446,27 @@ onMounted(loadEvents);
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--sk-text);
-  background: var(--sk-glass-level-3);
-  border: 1px solid var(--sk-glass-border);
-  backdrop-filter: var(--sk-panel-blur);
-  -webkit-backdrop-filter: var(--sk-panel-blur);
-  box-shadow: var(--sk-raised-soft);
+  background: transparent;
   cursor: pointer;
   transition:
     transform 0.12s ease,
-    box-shadow 0.12s ease,
-    background 0.12s ease;
-}
-
-.cal-day:hover {
-  transform: translateY(-1px);
+    background 0.12s ease,
+    box-shadow 0.12s ease;
 }
 
 .cal-day:active {
-  transform: translateY(1px) scale(0.96);
-  box-shadow: var(--sk-pressed-shadow);
+  transform: scale(0.9);
 }
 
 .cal-day.selected {
-  color: #fff;
-  background: linear-gradient(150deg, #7cc08f, var(--ion-color-primary) 65%, var(--sk-accent-shade));
-  border: none;
-  box-shadow: 0 6px 16px rgba(88, 167, 111, 0.4);
+  color: #ffffff;
+  background: var(--sk-lime-deep);
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(121, 185, 60, 0.4);
 }
 
 .cal-cell.is-today .cal-day:not(.selected) {
-  border: 2px solid var(--sk-accent);
+  border: 2px solid var(--sk-amber-deep);
   font-weight: 800;
 }
 
@@ -458,53 +485,103 @@ onMounted(loadEvents);
 }
 
 .dot--upcoming {
-  background: #3b82f6;
+  background: var(--sk-lime-deep);
 }
 .dot--ongoing {
-  background: #f59e0b;
+  background: var(--sk-amber-deep);
 }
 .dot--completed {
-  background: #22c55e;
+  background: var(--sk-coral-deep);
 }
 .dot--cancelled {
-  background: #ef4444;
+  background: var(--sk-text-muted);
 }
 
-/* Selected day events */
-.day-panel {
-  padding: 14px;
+/* Selected day heading */
+.day-heading {
+  margin: 2px 2px 0;
+  font-size: 0.98rem;
+  font-weight: 900;
+  color: var(--sk-text);
 }
 
-.day-panel-title {
-  font-size: 1rem;
-  margin: 0 0 10px;
+/* Accent event cards */
+.ac-card {
+  border-radius: var(--sk-radius-card);
+  padding: 11px 13px;
+  box-shadow: var(--sk-raised-soft);
+}
+
+.is-lime {
+  background: var(--sk-lime);
+}
+.is-amber {
+  background: var(--sk-amber);
+}
+.is-coral {
+  background: var(--sk-coral);
+}
+.is-grey {
+  background: var(--sk-chip-bg);
 }
 
 .day-event {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 10px 12px;
-  margin-bottom: 8px;
+  gap: 11px;
+}
+
+.de-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--sk-on-accent);
+  flex-shrink: 0;
+}
+
+.de-body {
+  flex: 1;
+  min-width: 0;
 }
 
 .event-name {
-  font-size: 0.95rem;
-  font-weight: 700;
   margin: 0;
+  font-size: 0.92rem;
+  font-weight: 900;
+  color: var(--sk-on-accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .event-time {
   margin: 2px 0 0;
-  font-size: 0.75rem;
-  color: var(--sk-text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+.no-events-card {
+  padding: 22px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.no-events-icon {
+  font-size: 20px;
+  color: var(--sk-amber-deep);
 }
 
 .no-events {
+  margin: 0;
   color: var(--sk-text-muted);
   font-size: 0.85rem;
-  text-align: center;
-  margin: 6px 0 0;
 }
 </style>

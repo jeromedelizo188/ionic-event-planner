@@ -6,25 +6,27 @@
 
     <!-- Floating dock: detached pill bar + separate add orb -->
     <div class="sk-dock">
-      <ion-tab-bar class="sk-pillbar">
-        <ion-tab-button
-          tab="home"
-          :selected="currentTab === 'home'"
+      <div class="sk-pillbar">
+        <button
+          class="dock-tab"
+          :class="{ active: currentTab === 'home' }"
           @click.prevent="goTab('home')"
+          aria-label="Home"
         >
-          <ion-icon :icon="homeOutline"></ion-icon>
-        </ion-tab-button>
-        <ion-tab-button
-          tab="calendar"
-          :selected="currentTab === 'calendar'"
+          <i class="fa-solid fa-house"></i>
+        </button>
+        <button
+          class="dock-tab"
+          :class="{ active: currentTab === 'calendar' }"
           @click.prevent="goTab('calendar')"
+          aria-label="Calendar"
         >
-          <ion-icon :icon="calendarOutline"></ion-icon>
-        </ion-tab-button>
-      </ion-tab-bar>
+          <i class="fa-solid fa-calendar-days"></i>
+        </button>
+      </div>
 
       <button class="sk-orb" @click="goCreate" aria-label="Create event">
-        <ion-icon :icon="add"></ion-icon>
+        <i class="fa-solid fa-plus"></i>
       </button>
     </div>
   </ion-page>
@@ -33,8 +35,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { IonIcon, IonPage, IonRouterOutlet, IonTabBar, IonTabButton, IonTabs } from '@ionic/vue';
-import { add, calendarOutline, homeOutline } from 'ionicons/icons';
+import { IonPage, IonRouterOutlet, IonTabs } from '@ionic/vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -57,11 +58,11 @@ function goCreate() {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 22px;
+  bottom: 18px;
   display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 14px;
+  align-items: center;
+  flex-direction: column;
+  gap: 8px;
   padding: 0 20px;
   z-index: 800;
   pointer-events: none;
@@ -72,52 +73,73 @@ function goCreate() {
 }
 
 /* Detached pill bar */
-ion-tab-bar.sk-pillbar {
-  width: auto;
-  min-width: 180px;
-  height: 60px;
-  --background: linear-gradient(150deg, var(--sk-glass-level-1), var(--sk-glass-level-2));
-  --border: none;
-  background: linear-gradient(150deg, var(--sk-glass-level-1), var(--sk-glass-level-2));
-  border: 1px solid var(--sk-glass-border);
-  border-radius: var(--sk-radius-pill);
-  backdrop-filter: var(--sk-panel-blur);
-  -webkit-backdrop-filter: var(--sk-panel-blur);
-  box-shadow: var(--sk-raised-shadow);
+.sk-pillbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 168px;
+  height: 52px;
   padding: 0 8px;
-}
-
-ion-tab-button {
-  --color: #9daf9e;
-  --color-selected: var(--sk-accent);
-  --ripple-color: var(--sk-accent-tint);
-}
-
-ion-tab-button.tab-selected {
-  background: var(--sk-accent-tint);
+  background: var(--sk-dock-bg);
+  border: 1px solid var(--sk-dock-border);
   border-radius: var(--sk-radius-pill);
-  margin: 4px;
+  box-shadow: var(--sk-raised-shadow);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
 }
 
-/* Separate solid-green add orb */
+.dock-tab {
+  border: none;
+  background: transparent;
+  width: 44px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--sk-radius-pill);
+  color: var(--sk-text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.14s ease;
+}
+
+.dock-tab.active {
+  background: var(--sk-accent-tint);
+  color: var(--sk-accent-shade);
+  font-weight: 800;
+}
+
+html.dark .dock-tab.active {
+  color: var(--sk-lime);
+}
+
+.dock-tab:active {
+  transform: scale(0.92);
+}
+
+/* Separate tri-accent add orb */
 .sk-orb {
-  width: 58px;
-  height: 58px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #fff;
-  font-size: 30px;
-  background: radial-gradient(
-    circle at 32% 26%,
-    #7cc08f,
-    var(--ion-color-primary) 62%,
-    var(--ion-color-primary-shade)
+  color: #ffffff;
+  font-size: 20px;
+  background: linear-gradient(
+    135deg,
+    var(--sk-lime-deep) 0%,
+    var(--sk-amber-deep) 55%,
+    var(--sk-coral-deep) 100%
   );
-  box-shadow: 0 10px 24px rgba(88, 167, 111, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
   transition:
     transform 0.16s ease,
     box-shadow 0.16s ease;
@@ -125,11 +147,11 @@ ion-tab-button.tab-selected {
 
 .sk-orb:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 28px rgba(88, 167, 111, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .sk-orb:active {
-  transform: translateY(1px) scale(0.97);
-  box-shadow: 0 4px 12px rgba(88, 167, 111, 0.35);
+  transform: translateY(1px) scale(0.95);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.24);
 }
 </style>

@@ -15,15 +15,15 @@ const state = connectionState;
 const label = computed(() => {
   switch (state.value) {
     case 'connected':
-      return 'Live DB';
+      return 'Live';
     case 'connecting':
       return 'Connecting';
     case 'disconnected':
       return 'Offline';
     case 'blocked':
-      return 'Rules blocked';
+      return 'Blocked';
     default:
-      return 'Demo data';
+      return 'Demo';
   }
 });
 
@@ -94,43 +94,40 @@ async function showInfo() {
 .conn-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
+  gap: 5px;
+  padding: 4px 10px;
   border-radius: var(--sk-radius-pill);
-  background: var(--sk-glass-level-2);
-  border: 1px solid var(--sk-glass-border);
-  backdrop-filter: var(--sk-panel-blur);
-  -webkit-backdrop-filter: var(--sk-panel-blur);
-  box-shadow: var(--sk-raised-soft);
+  background: var(--sk-chip-bg);
+  border: 1px solid var(--sk-border);
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
 }
 
 .dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: #b8b8b8;
+  background: #a8a8a8;
 }
 
 .label {
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--sk-text-light);
+  color: var(--sk-chip-text);
   white-space: nowrap;
 }
 
 .is-connected .dot {
-  background: #3f9e63;
-  box-shadow: 0 0 6px rgba(63, 158, 99, 0.7);
+  background: var(--sk-lime-deep);
+  box-shadow: 0 0 6px rgba(121, 185, 60, 0.7);
 }
 
 .is-connecting .dot,
 .is-blocked .dot {
-  background: #d7c36a;
+  background: var(--sk-amber-deep);
 }
 
 .is-connecting .dot {
@@ -138,11 +135,11 @@ async function showInfo() {
 }
 
 .is-offline .dot {
-  background: #cf6454;
+  background: var(--sk-coral-deep);
 }
 
 .is-demo .dot {
-  background: #b8b8b8;
+  background: #a8a8a8;
 }
 
 @keyframes sk-pulse {

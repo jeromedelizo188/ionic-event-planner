@@ -29,6 +29,13 @@ import '@ionic/vue/css/display.css';
 /* Theme variables */
 import './theme/variables.css';
 
+/* Font Awesome solid icon set */
+import '@fortawesome/fontawesome-free/css/all.min.css';
+
+import { initTheme } from './composables/useTheme';
+
+initTheme();
+
 const app = createApp(App)
   .use(IonicVue)
   .use(router);

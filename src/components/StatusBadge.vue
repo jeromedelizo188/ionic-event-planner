@@ -1,31 +1,55 @@
 <template>
-  <span class="sk-badge" :style="badgeStyle">{{ displayStatus }}</span>
+  <span class="status-badge" :class="`is-${status}`">
+    <span class="sc-dot"></span>
+    {{ status }}
+  </span>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-
-const props = defineProps<{ status: string }>();
-
-const statusColors: Record<string, { top: string; bottom: string }> = {
-  upcoming: { top: '#7cc08f', bottom: '#3f9e63' },
-  ongoing: { top: '#b3c46a', bottom: '#7fa34b' },
-  completed: { top: '#5bbf7d', bottom: '#2e8b57' },
-  cancelled: { top: '#a5ad8a', bottom: '#8b9370' },
-};
-
-const badgeStyle = computed(() => {
-  const colors = statusColors[props.status.toLowerCase()] ?? {
-    top: '#a5ad8a',
-    bottom: '#8b9370',
-  };
-  return {
-    background: `linear-gradient(180deg, ${colors.top}, ${colors.bottom})`,
-    color: '#fff',
-  };
-});
-
-const displayStatus = computed(() =>
-  props.status.charAt(0).toUpperCase() + props.status.slice(1)
-);
+defineProps<{ status: string }>();
 </script>
+
+<style scoped>
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: var(--sk-radius-pill);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffffff;
+  background: var(--sk-lime-deep);
+  white-space: nowrap;
+}
+
+.sc-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.is-upcoming {
+  background: var(--sk-lime-deep);
+}
+
+.is-ongoing {
+  background: var(--sk-amber-deep);
+}
+
+.is-completed {
+  background: var(--sk-coral-deep);
+}
+
+.is-cancelled {
+  background: var(--sk-chip-bg);
+  color: var(--sk-chip-text);
+}
+
+.is-cancelled .sc-dot {
+  background: var(--sk-text-muted);
+}
+</style>

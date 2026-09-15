@@ -2,18 +2,21 @@
   <ion-page>
     <ion-header :translucent="true">
       <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button default-href="/tabs/home"></ion-back-button>
-        </ion-buttons>
-        <ion-title>Event Details</ion-title>
-        <ion-buttons slot="end">
-          <ion-button :router-link="`/event/${event?.id}/edit`" :disabled="!event">
-            <ion-icon :icon="createOutline"></ion-icon>
-          </ion-button>
-          <ion-button color="danger" :disabled="!event" @click="onConfirmDelete">
-            <ion-icon :icon="trashOutline"></ion-icon>
-          </ion-button>
-        </ion-buttons>
+        <div class="detail-topbar">
+          <button class="icon-btn" @click="router.back()" aria-label="Back">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <span class="tb-name">Event Details</span>
+          <div class="tb-actions">
+            <button class="icon-btn warn" :disabled="!event" @click="goEdit" aria-label="Edit">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="icon-btn danger" :disabled="!event" @click="onConfirmDelete" aria-label="Delete">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+            <ThemeToggle />
+          </div>
+        </div>
       </ion-toolbar>
     </ion-header>
 
@@ -23,39 +26,41 @@
       </div>
 
       <div v-else-if="event" class="detail-wrap">
-        <!-- Hero header: mixed-weight date + status -->
-        <div class="sk-panel hero-card">
+        <!-- Hero: accent pastel card by status -->
+        <div class="ac-card" :class="accentOf(event.status)">
+          <div class="hero-top">
+            <StatusBadge :status="event.status" />
+            <i class="fa-solid fa-bullhorn hero-emoji"></i>
+          </div>
           <div class="hero-date-row">
             <span class="hero-day">{{ dayNum(event.eventTimestamp) }}</span>
-            <div class="hero-date-meta">
-              <span class="hero-month-time">{{ monthDayTime(event.eventTimestamp) }}</span>
-            </div>
+            <span class="hero-month-time">{{ monthDayTime(event.eventTimestamp) }}</span>
           </div>
-          <StatusBadge :status="event.status" />
           <h1 class="hero-title">{{ event.name }}</h1>
         </div>
 
-        <!-- Info rows with marker highlights on labels and highlighted values -->
+        <!-- Info panel -->
         <div class="sk-panel info-panel">
           <div class="info-row">
-            <span class="info-label">Date &amp; Time</span>
-            <div class="info-icon-row">
-              <ion-icon :icon="calendarOutline"></ion-icon>
+            <span class="info-icon"><i class="fa-solid fa-clock"></i></span>
+            <div>
+              <span class="info-label">Date &amp; Time</span>
               <span class="info-value">{{ formatDate(event.eventTimestamp) }}</span>
             </div>
           </div>
           <div class="info-divider"></div>
           <div class="info-row">
-            <span class="info-label marker">Venue</span>
-            <div class="info-icon-row">
-              <ion-icon :icon="locationOutline"></ion-icon>
+            <span class="info-icon"><i class="fa-solid fa-location-dot"></i></span>
+            <div>
+              <span class="info-label">Venue</span>
               <span class="info-value" v-html="markText(event.venue, event.venue)"></span>
             </div>
           </div>
           <div v-if="event.description" class="info-divider"></div>
           <div v-if="event.description" class="info-row">
-            <span class="info-label">Description</span>
-            <div class="info-icon-row desc-row">
+            <span class="info-icon"><i class="fa-solid fa-note-sticky"></i></span>
+            <div>
+              <span class="info-label">Description</span>
               <span class="info-value" v-html="highlightDesc(event.description, event.venue)"></span>
             </div>
           </div>
@@ -63,28 +68,17 @@
 
         <!-- Pill action buttons -->
         <div class="actions">
-          <ion-button
-            expand="block"
-            class="sk-pill-btn"
-            :router-link="`/event/${event.id}/edit`"
-          >
-            <ion-icon slot="start" :icon="createOutline"></ion-icon>
-            Edit Event
-          </ion-button>
-          <ion-button
-            expand="block"
-            color="danger"
-            class="sk-pill-btn danger"
-            @click="onConfirmDelete"
-          >
-            <ion-icon slot="start" :icon="trashOutline"></ion-icon>
-            Delete Event
-          </ion-button>
+          <button class="pill-action primary" @click="goEdit">
+            <i class="fa-solid fa-pen"></i> Edit Event
+          </button>
+          <button class="pill-action danger" @click="onConfirmDelete">
+            <i class="fa-solid fa-trash-can"></i> Delete Event
+          </button>
         </div>
       </div>
 
       <div v-else class="empty-state">
-        <p class="sk-title">{{ loadError || 'Event not found' }}</p>
+        <p class="empty-text">{{ loadError || 'Event not found' }}</p>
       </div>
     </ion-content>
   </ion-page>
@@ -93,25 +87,12 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import {
-  IonBackButton,
-  IonButton,
-  IonButtons,
-  IonContent,
-  IonHeader,
-  IonIcon,
-  IonPage,
-  IonSpinner,
-  IonTitle,
-  IonToolbar,
-  alertController,
-  onIonViewWillEnter,
-} from '@ionic/vue';
-import { calendarOutline, createOutline, locationOutline, trashOutline } from 'ionicons/icons';
+import { IonContent, IonHeader, IonPage, IonSpinner, IonToolbar, alertController, onIonViewWillEnter } from '@ionic/vue';
 import type { EventItem } from '@/types/event';
 import { deleteEvent, getErrorMessage, getEvent } from '@/services/eventService';
 import { formatDate } from '@/utils/format';
 import StatusBadge from '@/components/StatusBadge.vue';
+import ThemeToggle from '@/components/ThemeToggle.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -131,6 +112,19 @@ function monthDayTime(timestamp: number): string {
   return `${month} \u00B7 ${time}`;
 }
 
+function accentOf(status: string): string {
+  switch (status) {
+    case 'ongoing':
+      return 'is-amber';
+    case 'completed':
+      return 'is-coral';
+    case 'cancelled':
+      return 'is-grey';
+    default:
+      return 'is-lime';
+  }
+}
+
 function markText(text: string, highlight: string): string {
   if (!highlight) return text;
   const escaped = highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -143,6 +137,10 @@ function markText(text: string, highlight: string): string {
 function highlightDesc(desc: string, venue: string): string {
   if (!venue) return desc;
   return markText(desc, venue);
+}
+
+function goEdit() {
+  if (event.value) router.push(`/event/${event.value.id}/edit`);
 }
 
 async function loadEvent() {
@@ -192,32 +190,110 @@ onMounted(loadEvent);
 </script>
 
 <style scoped>
+.detail-topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 14px 8px;
+}
+
+.tb-name {
+  margin-right: auto;
+  font-size: 1.02rem;
+  font-weight: 900;
+  color: var(--sk-text);
+  letter-spacing: -0.01em;
+}
+
+.tb-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--sk-chip-bg);
+  color: var(--sk-chip-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.icon-btn.warn {
+  color: var(--sk-amber-deep);
+}
+
+.icon-btn.danger {
+  color: var(--sk-coral-deep);
+}
+
+.icon-btn:disabled {
+  opacity: 0.4;
+}
+
 .loading {
   display: flex;
   justify-content: center;
-  padding: 3rem 0;
+  padding: 4rem 0;
 }
 
 .empty-state {
   text-align: center;
-  color: var(--sk-text-muted);
   margin-top: 4rem;
+}
+
+.empty-text {
+  color: var(--sk-text-muted);
+  font-weight: 600;
 }
 
 .detail-wrap {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 14px;
+  padding: 6px 14px 30px;
 }
 
-/* Hero: mixed-weight date header */
-.hero-card {
-  padding: 20px 18px 18px;
+/* Hero accent card */
+.ac-card {
+  border-radius: var(--sk-radius-card);
+  padding: 17px 17px 15px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
+  gap: 11px;
+  color: var(--sk-on-accent);
+  box-shadow: var(--sk-raised-soft);
+}
+
+.is-lime {
+  background: var(--sk-lime);
+}
+.is-amber {
+  background: var(--sk-amber);
+}
+.is-coral {
+  background: var(--sk-coral);
+}
+.is-grey {
+  background: var(--sk-chip-bg);
+  color: var(--sk-chip-text);
+}
+
+.hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hero-emoji {
+  font-size: 1.5rem;
+  opacity: 0.75;
 }
 
 .hero-date-row {
@@ -227,105 +303,115 @@ onMounted(loadEvent);
 }
 
 .hero-day {
-  font-size: 3rem;
-  font-weight: 800;
-  color: var(--sk-text);
+  font-size: 3.2rem;
+  font-weight: 900;
   line-height: 1;
-}
-
-.hero-date-meta {
-  display: flex;
-  flex-direction: column;
+  letter-spacing: -0.03em;
 }
 
 .hero-month-time {
   font-size: 1rem;
-  font-weight: 300;
-  color: var(--sk-text-light);
+  font-weight: 700;
+  opacity: 0.75;
 }
 
 .hero-title {
   margin: 0;
-  font-size: 1.4rem;
-  font-weight: 800;
-  color: var(--sk-text);
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
   word-break: break-word;
 }
 
 /* Info panel */
 .info-panel {
-  padding: 8px 16px;
+  padding: 6px 16px;
 }
 
 .info-row {
-  padding: 12px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 13px 0;
+}
+
+.info-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  color: var(--sk-coral-deep);
+  background: var(--sk-red-tint);
+  flex-shrink: 0;
 }
 
 .info-label {
   display: block;
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-size: 0.62rem;
+  font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--sk-text-muted);
-  margin-bottom: 6px;
-  padding: 2px 8px;
-}
-
-.info-label.marker {
-  background: var(--sk-marker);
-  border-radius: 4px;
-  display: inline-block;
-}
-
-.info-icon-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--sk-text);
-}
-
-.info-icon-row ion-icon {
-  font-size: 1.15rem;
-  color: var(--sk-accent);
-  flex-shrink: 0;
-}
-
-.desc-row {
-  padding-left: 0;
+  margin-bottom: 3px;
 }
 
 .info-value {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--sk-text);
   word-break: break-word;
-  line-height: 1.5;
+  line-height: 1.45;
 }
 
 .info-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--sk-glass-border), transparent);
+  background: linear-gradient(90deg, transparent, var(--sk-border), transparent);
 }
 
-/* Marker highlight in text */
 :deep(.sk-mark) {
   background: var(--sk-marker);
-  border-radius: 3px;
+  border-radius: 4px;
   padding: 0 3px;
   color: inherit;
 }
 
-/* Pill action buttons */
+/* Pill actions */
 .actions {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 4px 0 10px;
+  padding: 2px 0;
 }
 
-.sk-pill-btn {
-  --border-radius: var(--sk-radius-pill);
-  --box-shadow: var(--sk-raised-soft);
-  font-weight: 700;
-  height: 50px;
-  margin: 0;
+.pill-action {
+  height: 46px;
+  border: none;
+  border-radius: var(--sk-radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 0.88rem;
+  cursor: pointer;
+  box-shadow: var(--sk-raised-soft);
+}
+
+.pill-action i {
+  font-size: 13px;
+}
+
+.pill-action.primary {
+  background: var(--sk-lime-deep);
+  color: #ffffff;
+}
+
+.pill-action.danger {
+  background: var(--sk-coral-deep);
+  color: #ffffff;
 }
 </style>

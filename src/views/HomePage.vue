@@ -2,15 +2,21 @@
   <ion-page>
     <ion-header translucent>
       <ion-toolbar>
-<ion-title>
-            <span class="head-light">Event</span>{{ ' ' }}<span class="head-bold">Planner</span>
-          </ion-title>
-          <ion-buttons slot="end">
+        <div class="topbar">
+          <LogoMark :size="34" />
+          <div class="tb-titles">
+            <span class="tb-name">Event Planner</span>
+            <span class="tb-sub">{{ greeting }} &middot; {{ events.length }} events</span>
+          </div>
+          <div class="tb-actions">
             <ConnectionBadge />
-          </ion-buttons>
-        </ion-toolbar>
-      <ion-toolbar>
-        <ion-searchbar v-model="searchQuery" placeholder="Search events" class="sk-search" />
+            <button class="tb-add" @click="goTo('/event/new')">
+              <i class="fa-solid fa-plus"></i>
+              <span class="tb-add-label">Add</span>
+            </button>
+            <ThemeToggle />
+          </div>
+        </div>
       </ion-toolbar>
     </ion-header>
 
@@ -24,96 +30,136 @@
       </div>
 
       <template v-else>
-        <div v-if="loadError" class="sk-panel error-panel">
-          <p class="error-text">{{ loadError }}</p>
-          <ion-button size="small" fill="solid" class="error-retry" @click="loadEvents">
-            Retry
-          </ion-button>
-        </div>
+        <div class="wrap">
+          <div class="search-row">
+            <ion-searchbar v-model="searchQuery" placeholder="Search events" class="sk-search" />
+          </div>
 
-        <div class="stack">
-          <!-- Hero: next upcoming event -->
-          <div v-if="nextEvent" class="sk-panel hero" @click="goTo(`/event/${nextEvent.id}`)">
-            <p class="hero-kicker">Next Up</p>
-            <h2 class="hero-name">
-              <span class="hero-name-light">{{ nextEvent.name }}</span>
+          <div v-if="loadError" class="error-chip">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span class="error-text">{{ loadError }}</span>
+            <button class="error-retry" @click="loadEvents">Retry</button>
+          </div>
+
+          <!-- Hero: next upcoming event, coral pastel card -->
+          <div
+            v-if="nextEvent"
+            class="ac-card is-coral hero-card sk-press"
+            @click="goTo(`/event/${nextEvent.id}`)"
+          >
+            <div class="hero-top">
+              <span class="hero-chip">
+                <i class="fa-solid fa-bolt"></i> Next up
+              </span>
+              <i class="fa-solid fa-arrow-right-long hero-arrow"></i>
+            </div>
+
+            <div class="hero-count">
+              <span class="hero-num">{{ countdown.days }}</span>
+              <span class="hero-unit">days to go</span>
+            </div>
+
+            <div class="hero-sub-count">
+              <span>{{ pad2(countdown.hours) }}h</span>
+              <span>{{ pad2(countdown.minutes) }}m</span>
+              <span>{{ pad2(countdown.seconds) }}s</span>
+            </div>
+
+            <h2 class="hero-title">
+              <i class="fa-solid fa-calendar-days"></i>
+              {{ nextEvent.name }}
             </h2>
-            <div class="hero-date">
-              <span class="date-num">{{ dayNum(nextEvent.eventTimestamp) }}</span>
-              <span class="date-month">{{ monthShort(nextEvent.eventTimestamp) }}</span>
+
+            <div class="ac-meta">
+              <span class="meta-row">
+                <i class="fa-solid fa-clock"></i>{{ fullDate(nextEvent.eventTimestamp) }}
+              </span>
+              <span class="meta-row">
+                <i class="fa-solid fa-location-dot"></i>{{ nextEvent.venue }}
+              </span>
             </div>
-            <p class="hero-venue">{{ nextEvent.venue }}</p>
-            <div class="countdown">
-              <div class="cd-seg">
-                <span class="cd-num">{{ countdown.days }}</span>
-                <span class="cd-lbl">days</span>
+
+            <div class="card-bottom">
+              <div class="avatars">
+                <span
+                  v-for="(init, idx) in avatarItems.slice(0, 3)"
+                  :key="idx"
+                  class="avatar"
+                  :style="{ background: AVATAR_TONES[idx % AVATAR_TONES.length] }"
+                  >{{ init }}</span
+                >
+                <span v-if="avatarItems.length > 3" class="avatar avatar-more"
+                  >+{{ avatarItems.length - 3 }}</span
+                >
+                <span v-if="avatarItems.length === 0" class="avatar avatar-empty">
+                  <i class="fa-solid fa-user"></i>
+                </span>
               </div>
-              <div class="cd-seg">
-                <span class="cd-num">{{ pad2(countdown.hours) }}</span>
-                <span class="cd-lbl">hrs</span>
-              </div>
-              <div class="cd-seg">
-                <span class="cd-num">{{ pad2(countdown.minutes) }}</span>
-                <span class="cd-lbl">min</span>
-              </div>
-              <div class="cd-seg">
-                <span class="cd-num">{{ pad2(countdown.seconds) }}</span>
-                <span class="cd-lbl">sec</span>
-              </div>
+              <StatusBadge :status="nextEvent.status" />
             </div>
           </div>
 
-          <!-- Stats: container card with inner stat cards -->
-          <div class="sk-panel stats">
-            <div class="stat">
-              <span class="stat-num">{{ stats.total }}</span>
-              <span class="stat-lbl">Total</span>
-            </div>
-            <div class="stat">
-              <span class="stat-num">{{ stats.upcoming }}</span>
-              <span class="stat-lbl">Upcoming</span>
-            </div>
-            <div class="stat">
-              <span class="stat-num">{{ stats.ongoing }}</span>
-              <span class="stat-lbl">Ongoing</span>
-            </div>
-            <div class="stat">
-              <span class="stat-num">{{ stats.completed }}</span>
-              <span class="stat-lbl">Done</span>
-            </div>
+          <!-- Section heading + right-aligned link -->
+          <div class="section-row">
+            <h2 class="section-title">{{ activeLabel }} events</h2>
+            <button class="section-link" @click="goTo('/tabs/calendar')">
+              Calendar <i class="fa-solid fa-chevron-right"></i>
+            </button>
           </div>
 
-          <!-- Events: container card with inner rows -->
-          <div class="sk-panel events">
-            <div class="events-head">
-              <span class="head-light">All</span>
-              <span class="head-bold">Events</span>
-            </div>
-
-            <div
-              v-for="event in filteredEvents"
-              :key="event.id"
-              class="event-row sk-press"
-              @click="goTo(`/event/${event.id}`)"
+          <!-- Horizontal scrollable status chips -->
+          <div class="chip-strip">
+            <button
+              v-for="chip in chips"
+              :key="chip.value"
+              class="chip"
+              :class="{ active: statusFilter === chip.value }"
+              @click="statusFilter = chip.value"
             >
-              <div class="event-date">
-                <span class="date-num">{{ dayNum(event.eventTimestamp) }}</span>
-                <span class="date-month">{{ monthShort(event.eventTimestamp) }}</span>
+              {{ chip.label }}
+              <span v-if="stats[chip.value] !== undefined" class="chip-count">{{ stats[chip.value] }}</span>
+            </button>
+          </div>
+
+          <!-- Accent-colored event cards -->
+          <div
+            v-for="event in filteredEvents"
+            :key="event.id"
+            class="ac-card sk-press"
+            :class="accentOf(event.status)"
+            @click="goTo(`/event/${event.id}`)"
+          >
+            <div class="card-top">
+              <div class="card-datebox">
+                <span class="cd-day">{{ dayNum(event.eventTimestamp) }}</span>
+                <span class="cd-month">{{ monthShort(event.eventTimestamp) }}</span>
               </div>
-              <div class="event-info">
-                <p class="event-name">{{ event.name }}</p>
-                <p class="event-time">{{ timeNum(event.eventTimestamp) }} &middot; {{ event.venue }}</p>
-              </div>
+              <h3 class="card-title">{{ event.name }}</h3>
+              <i class="fa-solid fa-arrow-right card-arrow"></i>
+            </div>
+
+            <div class="ac-meta">
+              <span class="meta-row">
+                <i class="fa-solid fa-clock"></i>{{ timeNum(event.eventTimestamp) }} &middot;
+                {{ fullDayDuring(event.eventTimestamp) }}
+              </span>
+              <span class="meta-row">
+                <i class="fa-solid fa-location-dot"></i>{{ event.venue }}
+              </span>
+            </div>
+
+            <div class="card-bottom">
               <StatusBadge :status="event.status" />
             </div>
+          </div>
 
-            <div v-if="filteredEvents.length === 0" class="empty sk-panel">
-              <p>No events found</p>
-            </div>
-
-            <button class="add-row sk-press" @click="goTo('/event/new')">
-              <ion-icon :icon="add"></ion-icon>
-              <span>New Event</span>
+          <!-- Empty state -->
+          <div v-if="filteredEvents.length === 0" class="empty-card">
+            <span class="empty-icon"><i class="fa-solid fa-calendar-plus"></i></span>
+            <p class="empty-title">{{ searchQuery ? 'No results' : 'No events yet' }}</p>
+            <p class="empty-sub">{{ searchQuery ? 'Try a different search.' : 'Create your first event to see it light up here.' }}</p>
+            <button class="empty-btn" @click="goTo('/event/new')">
+              <i class="fa-solid fa-plus"></i> New event
             </button>
           </div>
         </div>
@@ -126,21 +172,16 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-  IonButton,
-  IonButtons,
   IonContent,
   IonHeader,
-  IonIcon,
   IonPage,
   IonRefresher,
   IonRefresherContent,
   IonSearchbar,
   IonSpinner,
-  IonTitle,
   IonToolbar,
   onIonViewWillEnter,
 } from '@ionic/vue';
-import { add } from 'ionicons/icons';
 import {
   eventsLoaded,
   liveEvents,
@@ -151,6 +192,8 @@ import {
 import { getCountdown, pad2, startOfDay } from '@/utils/format';
 import StatusBadge from '@/components/StatusBadge.vue';
 import ConnectionBadge from '@/components/ConnectionBadge.vue';
+import ThemeToggle from '@/components/ThemeToggle.vue';
+import LogoMark from '@/components/LogoMark.vue';
 
 const router = useRouter();
 
@@ -158,25 +201,48 @@ const loading = computed(() => !eventsLoaded.value);
 const events = liveEvents;
 const loadError = liveEventsError;
 const searchQuery = ref('');
+const statusFilter = ref('all');
 const now = ref(Date.now());
 let clockTimer: number | undefined;
 
+const AVATAR_TONES = [
+  'var(--sk-lime-deep)',
+  'var(--sk-amber-deep)',
+  'var(--sk-coral-deep)',
+];
+
+const chips = [
+  { value: 'all', label: 'All' },
+  { value: 'upcoming', label: 'Upcoming' },
+  { value: 'ongoing', label: 'Ongoing' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Canceled' },
+] as const;
+
+const activeLabel = computed(() => {
+  const chip = chips.find((c) => c.value === statusFilter.value);
+  return chip ? chip.label : 'All';
+});
+
 const filteredEvents = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
-  if (!query) return events.value;
-  return events.value.filter(
-    (event) =>
+  return events.value.filter((event) => {
+    if (statusFilter.value !== 'all' && event.status !== statusFilter.value) return false;
+    if (!query) return true;
+    return (
       event.name.toLowerCase().includes(query) ||
       event.venue.toLowerCase().includes(query) ||
       event.status.toLowerCase().includes(query)
-  );
+    );
+  });
 });
 
-const stats = computed(() => ({
-  total: events.value.length,
+const stats = computed<Record<string, number>>(() => ({
+  all: events.value.length,
   upcoming: events.value.filter((e) => e.status === 'upcoming').length,
   ongoing: events.value.filter((e) => e.status === 'ongoing').length,
   completed: events.value.filter((e) => e.status === 'completed').length,
+  cancelled: events.value.filter((e) => e.status === 'cancelled').length,
 }));
 
 const nextEvent = computed(() => {
@@ -194,6 +260,21 @@ const countdown = computed(() =>
     : { days: 0, hours: 0, minutes: 0, seconds: 0, started: false }
 );
 
+const avatarItems = computed(() => {
+  const sorted = [...events.value]
+    .filter((e) => e.status === 'upcoming' || e.status === 'ongoing')
+    .sort((a, b) => a.eventTimestamp - b.eventTimestamp);
+  const pool = sorted.length ? sorted : events.value;
+  return pool.slice(0, 4).map((e) => initials(e.name));
+});
+
+const greeting = (() => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+})();
+
 function dayNum(timestamp: number): number {
   return new Date(timestamp).getDate();
 }
@@ -204,6 +285,46 @@ function monthShort(timestamp: number): string {
 
 function timeNum(timestamp: number): string {
   return new Date(timestamp).toLocaleString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+function fullDate(timestamp: number): string {
+  return new Date(timestamp).toLocaleString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function fullDayDuring(timestamp: number): string {
+  return new Date(timestamp).toLocaleString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('');
+}
+
+function accentOf(status: string): string {
+  switch (status) {
+    case 'ongoing':
+      return 'is-amber';
+    case 'completed':
+      return 'is-coral';
+    case 'cancelled':
+      return 'is-grey';
+    default:
+      return 'is-lime';
+  }
 }
 
 function goTo(path: string) {
@@ -235,271 +356,500 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* ===== Top bar ===== */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 14px 8px;
+}
+
+.tb-titles {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-right: auto;
+}
+
+.tb-name {
+  font-weight: 900;
+  font-size: 1.02rem;
+  color: var(--sk-text);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.tb-sub {
+  font-size: 0.66rem;
+  font-weight: 500;
+  color: var(--sk-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tb-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tb-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  cursor: pointer;
+  height: 30px;
+  padding: 0 13px;
+  border-radius: var(--sk-radius-pill);
+  background: linear-gradient(
+    135deg,
+    var(--sk-lime-deep) 0%,
+    var(--sk-amber-deep) 60%,
+    var(--sk-coral-deep) 100%
+  );
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.76rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+
+.tb-add i {
+  font-size: 11px;
+}
+
+/* ===== Content ===== */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 6px 14px 90px;
+}
+
+.search-row {
+  padding: 0 2px;
+}
+
 .loading {
   display: flex;
   justify-content: center;
-  padding: 3rem 0;
+  padding: 4rem 0;
 }
 
-.error-panel {
+/* Error chip */
+.error-chip {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 14px;
-  padding: 12px 14px;
-  border-color: rgba(207, 100, 84, 0.35);
-  background: rgba(255, 240, 236, 0.55);
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: var(--sk-radius-pill);
+  background: var(--sk-red-tint);
+  border: 1px solid rgba(229, 101, 79, 0.28);
+  color: var(--sk-coral-deep);
+  font-size: 0.76rem;
 }
 
 .error-text {
-  margin: 0;
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: #a4473a;
-  line-height: 1.4;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .error-retry {
-  --border-radius: var(--sk-radius-pill);
-  --background: #cf6454;
-  font-weight: 700;
+  border: none;
+  background: var(--sk-coral-deep);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.7rem;
+  border-radius: var(--sk-radius-pill);
+  padding: 5px 12px;
+  cursor: pointer;
   flex-shrink: 0;
 }
 
-/* Stacked card layers */
-.stack {
+/* ===== Accent cards (full-bleed pastel, dark text) ===== */
+.ac-card {
+  border-radius: var(--sk-radius-card);
+  padding: 15px 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 14px;
+  gap: 10px;
+  color: var(--sk-on-accent);
+  box-shadow: var(--sk-raised-soft);
 }
 
-/* Hero card */
-.hero {
-  padding: 20px 18px 18px;
-  cursor: pointer;
+.is-lime {
+  background: var(--sk-lime);
+}
+.is-amber {
+  background: var(--sk-amber);
+}
+.is-coral {
+  background: var(--sk-coral);
+}
+.is-grey {
+  background: var(--sk-chip-bg);
+  color: var(--sk-chip-text);
 }
 
-.hero-kicker {
-  margin: 0 0 2px;
-  font-size: 0.72rem;
-  font-weight: 300;
-  letter-spacing: 0.18em;
+/* Hero countdown card */
+.hero-card {
+  padding: 18px 18px 15px;
+  gap: 10px;
+}
+
+.hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hero-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  border-radius: var(--sk-radius-pill);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--sk-on-accent);
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--sk-text-light);
 }
 
-.hero-name {
-  margin: 4px 0 14px;
-  font-size: 1.5rem;
+.hero-chip i {
+  color: var(--sk-coral-deep);
 }
 
-.hero-name-light {
-  font-weight: 300;
+.hero-arrow {
+  font-size: 15px;
+  opacity: 0.65;
 }
 
-.hero-date {
+.hero-count {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  margin: 0 0 10px;
+  gap: 9px;
 }
 
-.date-num {
-  font-size: 2.6rem;
-  font-weight: 800;
-  color: var(--sk-text);
+.hero-num {
+  font-size: 3.1rem;
+  font-weight: 900;
   line-height: 1;
+  letter-spacing: -0.03em;
 }
 
-.date-month {
-  font-size: 1.15rem;
-  font-weight: 300;
-  color: var(--sk-text-light);
+.hero-unit {
+  font-size: 0.92rem;
+  font-weight: 800;
+  opacity: 0.8;
 }
 
-.hero-venue {
-  margin: 0 0 14px;
-  font-size: 0.9rem;
-  font-weight: 300;
-  color: var(--sk-text-light);
-}
-
-.countdown {
+.hero-sub-count {
   display: flex;
   gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  opacity: 0.75;
 }
 
-.cd-seg {
-  flex: 1;
+.hero-sub-count span {
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: var(--sk-radius-pill);
+  padding: 2px 9px;
+}
+
+.hero-title {
+  margin: 0;
+  font-size: 1.28rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 10px 2px;
-  border-radius: var(--sk-radius-sm);
-  background: var(--sk-glass-level-3);
-  border: 1px solid var(--sk-glass-border);
-  backdrop-filter: var(--sk-panel-blur);
-  -webkit-backdrop-filter: var(--sk-panel-blur);
-  box-shadow: var(--sk-inset-shadow);
+  gap: 8px;
+  word-break: break-word;
 }
 
-.cd-num {
-  font-size: 1.35rem;
+.hero-title i {
+  font-size: 1rem;
+  opacity: 0.8;
 }
 
-.cd-lbl {
-  margin-top: 3px;
-  font-size: 0.58rem;
-  font-weight: 300;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--sk-text-light);
-}
-
-/* Stats container: inner stat cards */
-.stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  padding: 14px;
-}
-
-.stat {
+/* Metadata rows with icons */
+.ac-meta {
   display: flex;
   flex-direction: column;
+  gap: 5px;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta-row i {
+  font-size: 0.78rem;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+.card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+/* Avatar cluster */
+.avatars {
+  display: flex;
+  align-items: center;
+}
+
+.avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 0.66rem;
+  font-weight: 800;
+  border: 2px solid var(--sk-on-accent);
+  margin-left: -7px;
+}
+
+.avatar:first-child {
+  margin-left: 0;
+}
+
+.avatar-more {
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.avatar-empty {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.avatar-empty i {
+  font-size: 11px;
+}
+
+/* ===== Section heading + link ===== */
+.section-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: var(--sk-text);
+  letter-spacing: -0.01em;
+}
+
+.section-link {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--sk-text-muted);
+  display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 14px 4px 12px;
-  border-radius: var(--sk-radius-md);
-  background: var(--sk-glass-level-3);
-  border: 1px solid var(--sk-glass-border);
-  backdrop-filter: var(--sk-panel-blur);
-  -webkit-backdrop-filter: var(--sk-panel-blur);
-  box-shadow: var(--sk-raised-soft);
 }
 
-.stat-num {
-  font-size: 1.6rem;
-}
-
-.stat-lbl {
+.section-link i {
   font-size: 0.6rem;
-  font-weight: 300;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--sk-text-light);
 }
 
-/* Events container: inner rows */
-.events {
-  padding: 18px 14px 14px;
+/* ===== Chips strip ===== */
+.chip-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px;
+  scrollbar-width: none;
 }
 
-.events-head {
-  margin: 0 4px 14px;
-  font-size: 1.1rem;
+.chip-strip::-webkit-scrollbar {
+  display: none;
 }
 
-.head-light {
-  font-weight: 300;
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  height: 30px;
+  padding: 0 13px;
+  border: none;
+  border-radius: var(--sk-radius-pill);
+  background: var(--sk-chip-bg);
+  color: var(--sk-chip-text);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.14s ease;
 }
 
-.head-bold {
+.chip:active {
+  transform: scale(0.95);
+}
+
+.chip.active {
+  background: var(--sk-lime-deep);
+  color: #ffffff;
+}
+
+.chip-count {
+  font-size: 0.6rem;
   font-weight: 800;
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: var(--sk-radius-pill);
+  padding: 1px 7px;
 }
 
-.event-row {
+.chip.active .chip-count {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* ===== Event cards ===== */
+.card-top {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
-  padding: 12px;
-  border-radius: var(--sk-radius-pill);
-  background: var(--sk-glass-level-2);
-  border: 1px solid var(--sk-glass-border);
-  backdrop-filter: var(--sk-panel-blur);
-  -webkit-backdrop-filter: var(--sk-panel-blur);
-  box-shadow: var(--sk-raised-soft);
+  gap: 11px;
 }
 
-.event-date {
+.card-datebox {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: var(--sk-glass-level-3);
+  width: 44px;
+  height: 44px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.55);
+  flex-shrink: 0;
 }
 
-.event-date .date-num {
+.cd-day {
   font-size: 1.15rem;
+  font-weight: 900;
   line-height: 1;
 }
 
-.event-date .date-month {
-  font-size: 0.62rem;
-  letter-spacing: 0.06em;
+.cd-month {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  opacity: 0.75;
 }
 
-.event-info {
+.card-title {
+  margin: 0;
   flex: 1;
   min-width: 0;
-}
-
-.event-name {
-  margin: 0;
-  font-size: 0.98rem;
-  font-weight: 700;
-  color: var(--sk-text);
+  font-size: 1.02rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.event-time {
-  margin: 3px 0 0;
-  font-size: 0.74rem;
-  font-weight: 300;
-  color: var(--sk-text-light);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.card-arrow {
+  font-size: 13px;
+  opacity: 0.55;
+  flex-shrink: 0;
 }
 
-.empty {
+/* ===== Empty state ===== */
+.empty-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 28px 18px;
+  border-radius: var(--sk-radius-card);
+  background: var(--sk-surface);
+  border: 1px solid var(--sk-border);
   text-align: center;
-  padding: 20px 12px;
-  margin-bottom: 10px;
 }
 
-.empty p {
-  margin: 0;
-  font-weight: 300;
-  color: var(--sk-text-light);
-}
-
-.add-row {
-  width: 100%;
+.empty-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 14px;
-  border: none;
-  border-radius: var(--sk-radius-pill);
-  background: linear-gradient(150deg, var(--sk-glass-level-2), var(--sk-glass-level-3));
-  color: var(--sk-accent);
-  font: inherit;
-  font-size: 0.92rem;
-  font-weight: 600;
+  font-size: 18px;
+  color: var(--sk-coral-deep);
+  background: var(--sk-red-tint);
+  margin-bottom: 4px;
 }
 
-.add-row ion-icon {
-  font-size: 20px;
+.empty-title {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 900;
+  color: var(--sk-text);
+}
+
+.empty-sub {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--sk-text-muted);
+}
+
+.empty-btn {
+  margin-top: 10px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 18px;
+  border-radius: var(--sk-radius-pill);
+  background: var(--sk-lime-deep);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.82rem;
+}
+
+.empty-btn i {
+  font-size: 12px;
+}
+
+/* Compact on small screens */
+@media (max-width: 380px) {
+  .tb-sub {
+    display: none;
+  }
+  .hero-num {
+    font-size: 2.6rem;
+  }
 }
 </style>
