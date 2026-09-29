@@ -474,28 +474,13 @@ onMounted(() => {
   box-sizing: border-box;
 }
 
-/* The terminal is dark-only, so it overrides the pastel theme shell
-   that variables.css applies to body / ion-page. */
-:global(html body) {
-  background: #000;
-  color: #00ff41;
-  font-family: 'DejaVu Sans Mono', 'Consolas', 'Courier New', monospace;
-  -webkit-font-smoothing: none;
-}
-
-/* subtle CRT scanlines */
-:global(html body)::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent 0 2px,
-    rgba(0, 255, 65, 0.025) 2px 4px
-  );
-  pointer-events: none;
-  z-index: 9999;
-}
+/* The body/background rules and the CRT scanline overlay live in the
+   unscoped <style> block at the end of this file. A :global() body rule
+   carrying an ::after must never be written in here: the scoped
+   transform strips the pseudo-element and merges those declarations
+   onto the body itself, which put pointer-events:none and
+   position:fixed on <body> and killed every tap and every scroll in
+   the app. */
 
 .term-page {
   background: #000;
@@ -698,5 +683,36 @@ onMounted(() => {
   outline: none;
   border-color: #00ff41;
   box-shadow: 0 0 10px rgba(0, 255, 65, 0.35);
+}
+</style>
+
+<!-- Unscoped on purpose. A scoped block mangles these two rules: it
+     drops the ::after pseudo-element and folds the declarations into
+     html body, which made the body itself position:fixed and
+     pointer-events:none, so the whole app ignored taps and scrolling.
+     Keeping them out of the scoped transform makes the output match
+     exactly what is written here. -->
+<style>
+/* The terminal is dark-only, so it overrides the pastel theme shell
+   that variables.css applies to body / ion-page. */
+html body {
+  background: #000;
+  color: #00ff41;
+  font-family: 'DejaVu Sans Mono', 'Consolas', 'Courier New', monospace;
+  -webkit-font-smoothing: none;
+}
+
+/* subtle CRT scanlines */
+html body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 2px,
+    rgba(0, 255, 65, 0.025) 2px 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
 }
 </style>

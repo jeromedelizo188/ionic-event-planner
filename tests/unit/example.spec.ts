@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import CipherPage from '@/views/CipherPage.vue'
@@ -119,6 +121,28 @@ describe('CipherPage terminal interaction', () => {
     expect(wrapper.text()).toMatch('CipherShell v0.1')
     expect((input.element as HTMLInputElement).value).toBe('')
     wrapper.unmount()
+  })
+})
+
+describe('CipherPage stylesheet', () => {
+  // Regression guard. Written as :global(html body)::after inside the
+  // scoped block, the scoped transform strips the pseudo-element and
+  // folds the declarations into html body. That put pointer-events:none
+  // and position:fixed on <body> itself, so the whole app ignored every
+  // tap and every scroll gesture. Verified against the built CSS.
+  const src = readFileSync(
+    resolve(process.cwd(), 'src/views/CipherPage.vue'),
+    'utf8'
+  )
+
+  test('does not put the overlay in the scoped block', () => {
+    expect(src).not.toMatch(/:global\(html body\)::after/)
+  })
+
+  test('declares the overlay in an unscoped block', () => {
+    const unscoped = src.slice(src.lastIndexOf('<style>'))
+    expect(unscoped).toMatch(/html body::after/)
+    expect(unscoped).toMatch(/pointer-events: none/)
   })
 })
 
