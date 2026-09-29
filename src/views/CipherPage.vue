@@ -34,6 +34,7 @@
             v-model="cmd"
             autocomplete="off"
             spellcheck="false"
+            autofocus
             @keydown="onKeydown"
           />
         </div>
@@ -54,7 +55,7 @@ import {
 } from '@/services/cipherService';
 
 /* ══════════════════════════════════════════════════
-   CipherShell v0.1 — Linux-style crypto prototype
+   CipherShell v0.1 — Linux-style crypto shell
    ══════════════════════════════════════════════════ */
 
 const ART = `⡌⠀⠉⠻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⠿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿
@@ -193,7 +194,7 @@ async function boot() {
     scrollDownAsync();
   }
   print('');
-  print("CipherShell 0.1 (prototype) — type 'help' for commands.", 'white');
+  print("CipherShell 0.1 — type 'help' for commands.", 'white');
   print('');
   busy = false;
 }
@@ -336,9 +337,9 @@ async function exec(raw: string) {
       break;
 
     case 'about':
-      print('CipherShell v0.1 — midterm prototype', 'white');
+      print('CipherShell v0.1', 'white');
       print('Course : ITP 412 - Information Assurance & Security', 'dim');
-      print('Cipher : Caesar shift / Vigenere keyword (prototype build)', 'dim');
+      print('Cipher : Caesar shift / Vigenere keyword', 'dim');
       print('Status : awaiting v1.0 upgrade (AES-256)', 'dim');
       break;
 
@@ -351,7 +352,7 @@ async function exec(raw: string) {
       break;
 
     case 'uname':
-      print('CipherShell localhost 0.1-prototype #1 SMP x86_64 GNU/Linux', 'dim');
+      print('CipherShell localhost 0.1 #1 SMP x86_64 GNU/Linux', 'dim');
       break;
 
     default:
@@ -363,7 +364,9 @@ async function exec(raw: string) {
    INPUT HANDLING
    ══════════════════════════════════════════════════ */
 async function onKeydown(e: KeyboardEvent) {
-  if (busy) {
+  // Only Enter is gated while an animation runs, so keystrokes are not
+  // swallowed during the boot sequence or the scramble loader.
+  if (busy && e.key === 'Enter') {
     e.preventDefault();
     return;
   }
@@ -407,8 +410,13 @@ async function onKeydown(e: KeyboardEvent) {
   if (raw.trim() && !mode) cmdHistory.push(raw.trim());
 
   busy = true;
-  await exec(raw);
-  busy = false;
+  try {
+    await exec(raw);
+  } finally {
+    // Without this, a throw inside exec leaves busy stuck true and the
+    // prompt can never accept a command again.
+    busy = false;
+  }
   scrollDown();
 }
 
@@ -417,16 +425,19 @@ function focusInput() {
 }
 
 onMounted(() => {
-  void boot().then(focusInput);
+  focusInput();
+  void boot().then(() => {
+    focusInput();
+    scrollDown();
+  });
 
   // Returning from the background can leave the WebView with a stale
-  // scroll offset, which makes taps land in the wrong place.
+  // scroll offset. Do not blur here: the browser fires this whenever a
+  // tab or window loses focus, which would banish the caret.
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       scrollDown();
       focusInput();
-    } else {
-      inputEl.value?.blur();
     }
   });
 });
