@@ -31,11 +31,14 @@
               id="cmd"
               ref="inputEl"
               v-model="cmd"
+              class="cmd-input"
+              :style="{ width: cmdWidth }"
               autocomplete="off"
               spellcheck="false"
               autofocus
               @keydown="onKeydown"
             />
+            <span class="block-caret" aria-hidden="true"></span>
           </div>
         </div>
       </div>
@@ -44,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { IonPage } from '@ionic/vue';
 import {
   decrypt,
@@ -108,6 +111,11 @@ let stepData: { text?: string; algo?: CipherAlgorithm } = {};
 const opLog: OpEntry[] = []; // session operation log
 const cmdHistory: string[] = [];
 let histIdx = -1;
+
+// Size the field to the text it holds so the block caret sits exactly
+// where the next character would land. Capped so a long command cannot
+// stretch past the terminal.
+const cmdWidth = computed(() => `min(${Math.max(1, cmd.value.length)}ch, 100%)`);
 
 // The prompt scrolls with the screen again, so follow the caret as the
 // typed line grows and wraps onto a new row.
@@ -518,6 +526,14 @@ onMounted(() => {
   overflow: hidden;
 }
 
+/* Pointing at the terminal says "this is typeable". */
+.term:hover {
+  border-color: #2c4a35;
+  box-shadow:
+    0 0 52px rgba(0, 255, 65, 0.18),
+    0 0 6px rgba(0, 255, 65, 0.38);
+}
+
 /* ── title bar ── */
 .titlebar {
   background: #161b16;
@@ -558,6 +574,10 @@ onMounted(() => {
      the input line permanently out of reach. */
   min-height: 0;
   overflow-y: auto;
+  /* Claim the vertical drag gesture so a touch scroll is not swallowed
+     by the page, and keep momentum scrolling on in the Android WebView. */
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   padding: 16px 18px;
   font-size: 14px;
@@ -620,22 +640,47 @@ onMounted(() => {
 .prompt .path {
   color: #00e5ff;
 }
-
 /* ── input line ── */
 /* Flows inline as the last line of the screen, like a real prompt. */
 .input-line {
   display: flex;
+  align-items: baseline;
   gap: 8px;
   margin-top: 2px;
 }
-#cmd {
-  flex: 1;
+
+.cmd-input {
+  flex: 0 1 auto;
+  min-width: 1ch;
+  max-width: 100%;
   background: transparent;
   border: none;
   outline: none;
+  padding: 0;
   color: #e8ffe8;
   font-family: inherit;
   font-size: 14px;
-  caret-color: #00ff41;
+  cursor: text;
+  /* The blinking block below is the caret, so the native one is hidden
+     to avoid two cursors fighting for the same spot. */
+  caret-color: transparent;
+}
+
+/* Typing indicator: a blinking block right after the typed text. */
+.block-caret {
+  flex: 0 0 auto;
+  width: 1ch;
+  color: #00ff41;
+  animation: caret-blink 1.06s step-end infinite;
+}
+
+@keyframes caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
 </style>
