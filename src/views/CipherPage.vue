@@ -4,7 +4,7 @@
       <div class="term">
         <div class="titlebar">
           <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
-          <span>cipher@localhost: ~</span>
+          <span>cipher: ~</span>
         </div>
 
         <div id="screen" ref="screenEl" @click="focusInput">
@@ -24,19 +24,19 @@
               >
             </div>
           </template>
-        </div>
 
-        <div class="input-line">
-          <span class="prompt">visitor@localhost:<span class="path">~</span>$</span>
-          <input
-            id="cmd"
-            ref="inputEl"
-            v-model="cmd"
-            autocomplete="off"
-            spellcheck="false"
-            autofocus
-            @keydown="onKeydown"
-          />
+          <div class="input-line">
+            <span class="prompt">visitor@localhost:<span class="path">~</span>$</span>
+            <input
+              id="cmd"
+              ref="inputEl"
+              v-model="cmd"
+              autocomplete="off"
+              spellcheck="false"
+              autofocus
+              @keydown="onKeydown"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -44,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from 'vue';
+import { nextTick, onMounted, ref, watch } from 'vue';
 import { IonPage } from '@ionic/vue';
 import {
   decrypt,
@@ -108,6 +108,10 @@ let stepData: { text?: string; algo?: CipherAlgorithm } = {};
 const opLog: OpEntry[] = []; // session operation log
 const cmdHistory: string[] = [];
 let histIdx = -1;
+
+// The prompt scrolls with the screen again, so follow the caret as the
+// typed line grows and wraps onto a new row.
+watch(cmd, () => scrollDownAsync());
 
 /* ── output helpers ───────────────────────────── */
 function scrollDown() {
@@ -609,13 +613,11 @@ onMounted(() => {
 }
 
 /* ── input line ── */
+/* Flows inline as the last line of the screen, like a real prompt. */
 .input-line {
   display: flex;
   gap: 8px;
-  flex-shrink: 0;
-  padding: 10px 18px;
-  border-top: 1px solid #1e3324;
-  background: #0c0f0c;
+  margin-top: 2px;
 }
 #cmd {
   flex: 1;

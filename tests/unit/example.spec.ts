@@ -15,7 +15,7 @@ describe('CipherPage.vue', () => {
         plugins: [router]
       }
     })
-    expect(wrapper.text()).toMatch('cipher@localhost')
+    expect(wrapper.text()).toMatch('cipher: ~')
     wrapper.unmount()
   })
 })
