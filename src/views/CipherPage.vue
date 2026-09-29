@@ -7,7 +7,7 @@
           <span>cipher: ~</span>
         </div>
 
-        <div id="screen" ref="screenEl" @click="promptFocus">
+        <div id="screen" ref="screenEl" @click="focusInput">
           <pre class="art">{{ ART }}</pre>
 
           <template v-for="(line, i) in lines" :key="i">
@@ -28,7 +28,7 @@
         </div>
       </div>
 
-      <div class="input-bar" @touchend="promptFocus" @click="promptFocus">
+      <div class="input-bar" @pointerdown="focusInput">
         <span class="prompt">visitor@localhost:<span class="path">~</span>$</span>
         <input
           id="cmd"
@@ -427,25 +427,19 @@ async function onKeydown(e: KeyboardEvent) {
 }
 
 function focusInput() {
-  // preventScroll is essential: a plain focus() makes the browser
-  // scroll the prompt into view, which fights any drag on the screen
-  // and makes it impossible to scroll back up through the history.
+  // preventScroll is essential: a plain focus() makes the browser scroll
+  // the prompt into view, which fights any drag on the screen and makes
+  // it impossible to scroll back up through the history.
+  //
+  // No blur/focus blip here. Blipping left the field focused while the
+  // keyboard was closed, and Android does not reopen the keyboard for an
+  // already-focused field, so the caret vanished and typing did nothing.
+  // Tapping the field directly now reopens the keyboard by itself.
+  //
+  // Callers must bind this to a single real gesture only. Binding both
+  // touchend and click fired it twice per tap, and the second call undid
+  // the first.
   inputEl.value?.focus({ preventScroll: true });
-}
-
-// Focus from a real user gesture, which is the only context Android will
-// open the soft keyboard in. Two Android specifics are handled here:
-//
-// 1. If the field is already focused but the keyboard was dismissed, a
-//    focus() call is a no-op and the keyboard stays closed. Blipping
-//    blur then focus forces the IME to come back up.
-// 2. This is bound to touchend as well as click, so the focus happens in
-//    the same gesture rather than after the synthesised click.
-function promptFocus() {
-  const el = inputEl.value;
-  if (!el) return;
-  if (document.activeElement === el) el.blur();
-  el.focus({ preventScroll: true });
 }
 
 onMounted(() => {
