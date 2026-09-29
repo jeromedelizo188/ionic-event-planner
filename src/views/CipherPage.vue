@@ -24,18 +24,18 @@
               >
             </div>
           </template>
+        </div>
 
-          <div class="input-line">
-            <span class="prompt">visitor@localhost:<span class="path">~</span>$</span>
-            <input
-              id="cmd"
-              ref="inputEl"
-              v-model="cmd"
-              autocomplete="off"
-              spellcheck="false"
-              @keydown="onKeydown"
-            />
-          </div>
+        <div class="input-line">
+          <span class="prompt">visitor@localhost:<span class="path">~</span>$</span>
+          <input
+            id="cmd"
+            ref="inputEl"
+            v-model="cmd"
+            autocomplete="off"
+            spellcheck="false"
+            @keydown="onKeydown"
+          />
         </div>
       </div>
     </div>
@@ -418,6 +418,17 @@ function focusInput() {
 
 onMounted(() => {
   void boot().then(focusInput);
+
+  // Returning from the background can leave the WebView with a stale
+  // scroll offset, which makes taps land in the wrong place.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      scrollDown();
+      focusInput();
+    } else {
+      inputEl.value?.blur();
+    }
+  });
 });
 </script>
 
@@ -458,7 +469,7 @@ onMounted(() => {
 }
 
 .term-wrap {
-  min-height: 100%;
+  height: 100%;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -470,7 +481,8 @@ onMounted(() => {
 .term {
   width: 100%;
   max-width: 920px;
-  height: 78vh;
+  height: 100%;
+  max-height: 78vh;
   display: flex;
   flex-direction: column;
   background: #0c0f0c;
@@ -516,7 +528,13 @@ onMounted(() => {
 /* ── screen ── */
 #screen {
   flex: 1;
+  /* min-height:0 is required, otherwise this flex child keeps its
+     intrinsic content height, overflows .term and gets clipped by
+     .term's overflow:hidden — leaving nothing to scroll and putting
+     the input line permanently out of reach. */
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 16px 18px;
   font-size: 14px;
   line-height: 1.45;
@@ -583,7 +601,10 @@ onMounted(() => {
 .input-line {
   display: flex;
   gap: 8px;
-  margin-top: 2px;
+  flex-shrink: 0;
+  padding: 10px 18px;
+  border-top: 1px solid #1e3324;
+  background: #0c0f0c;
 }
 #cmd {
   flex: 1;
