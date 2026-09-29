@@ -1,6 +1,6 @@
 <template>
   <ion-page class="term-page">
-    <div class="term-wrap">
+    <div class="term-wrap" @pointerdown="focusInput">
       <div class="term">
         <div class="titlebar">
           <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
@@ -443,6 +443,12 @@ onMounted(() => {
       scrollDown();
       focusInput();
     }
+  });
+
+  // Returning to the window or app is the signal that works when
+  // visibilitychange is unreliable, e.g. inside an Android WebView.
+  window.addEventListener('focus', () => {
+    focusInput();
   });
 });
 </script>
