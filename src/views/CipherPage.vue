@@ -1,6 +1,6 @@
 <template>
   <ion-page class="term-page">
-    <div class="term-wrap" @pointerdown="focusInput">
+    <div class="term-wrap" @click="focusInput">
       <div class="term">
         <div class="titlebar">
           <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
@@ -425,7 +425,10 @@ async function onKeydown(e: KeyboardEvent) {
 }
 
 function focusInput() {
-  inputEl.value?.focus();
+  // preventScroll is essential: a plain focus() makes the browser
+  // scroll the prompt into view, which fights any drag on the screen
+  // and makes it impossible to scroll back up through the history.
+  inputEl.value?.focus({ preventScroll: true });
 }
 
 onMounted(() => {
