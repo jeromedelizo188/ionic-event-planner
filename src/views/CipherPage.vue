@@ -1,13 +1,13 @@
 <template>
   <ion-page class="term-page">
-    <div class="term-wrap" @click="focusInput">
+    <div class="term-wrap">
       <div class="term">
         <div class="titlebar">
           <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
           <span>cipher: ~</span>
         </div>
 
-        <div id="screen" ref="screenEl" @click="focusInput">
+        <div id="screen" ref="screenEl" @click="promptFocus">
           <pre class="art">{{ ART }}</pre>
 
           <template v-for="(line, i) in lines" :key="i">
@@ -25,29 +25,28 @@
             </div>
           </template>
 
-          <div class="input-line">
-            <span class="prompt">visitor@localhost:<span class="path">~</span>$</span>
-            <input
-              id="cmd"
-              ref="inputEl"
-              v-model="cmd"
-              class="cmd-input"
-              :style="{ width: cmdWidth }"
-              autocomplete="off"
-              spellcheck="false"
-              autofocus
-              @keydown="onKeydown"
-            />
-            <span class="block-caret" aria-hidden="true"></span>
-          </div>
         </div>
+      </div>
+
+      <div class="input-bar" @touchend="promptFocus" @click="promptFocus">
+        <span class="prompt">visitor@localhost:<span class="path">~</span>$</span>
+        <input
+          id="cmd"
+          ref="inputEl"
+          v-model="cmd"
+          class="cmd-input"
+          autocomplete="off"
+          spellcheck="false"
+          autofocus
+          @keydown="onKeydown"
+        />
       </div>
     </div>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { nextTick, onMounted, ref, watch } from 'vue';
 import { IonPage } from '@ionic/vue';
 import {
   decrypt,
@@ -112,13 +111,8 @@ const opLog: OpEntry[] = []; // session operation log
 const cmdHistory: string[] = [];
 let histIdx = -1;
 
-// Size the field to the text it holds so the block caret sits exactly
-// where the next character would land. Capped so a long command cannot
-// stretch past the terminal.
-const cmdWidth = computed(() => `min(${Math.max(1, cmd.value.length)}ch, 100%)`);
-
-// The prompt scrolls with the screen again, so follow the caret as the
-// typed line grows and wraps onto a new row.
+// The prompt no longer scrolls away, but keep the output pinned to the
+// bottom as new lines are printed.
 watch(cmd, () => scrollDownAsync());
 
 /* ── output helpers ───────────────────────────── */
@@ -439,6 +433,21 @@ function focusInput() {
   inputEl.value?.focus({ preventScroll: true });
 }
 
+// Focus from a real user gesture, which is the only context Android will
+// open the soft keyboard in. Two Android specifics are handled here:
+//
+// 1. If the field is already focused but the keyboard was dismissed, a
+//    focus() call is a no-op and the keyboard stays closed. Blipping
+//    blur then focus forces the IME to come back up.
+// 2. This is bound to touchend as well as click, so the focus happens in
+//    the same gesture rather than after the synthesised click.
+function promptFocus() {
+  const el = inputEl.value;
+  if (!el) return;
+  if (document.activeElement === el) el.blur();
+  el.focus({ preventScroll: true });
+}
+
 onMounted(() => {
   focusInput();
   void boot().then(() => {
@@ -503,8 +512,11 @@ onMounted(() => {
 .term-wrap {
   height: 100%;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
+  /* Stacks the command bar under the terminal, both centred at the
+     same max width so the two line up as one unit. */
+  justify-content: flex-start;
+  align-items: center;
   padding: 25px 12px;
   padding-top: calc(25px + env(safe-area-inset-top, 0px));
   padding-bottom: calc(25px + env(safe-area-inset-bottom, 0px));
@@ -513,7 +525,11 @@ onMounted(() => {
 .term {
   width: 100%;
   max-width: 920px;
-  height: 100%;
+  /* Grow to fill whatever the command bar leaves behind, and never
+     squash below zero: min-height:0 is what lets #screen actually
+     scroll instead of pushing the box off screen. */
+  flex: 1 1 auto;
+  min-height: 0;
   max-height: 78vh;
   display: flex;
   flex-direction: column;
@@ -640,47 +656,53 @@ onMounted(() => {
 .prompt .path {
   color: #00e5ff;
 }
-/* ── input line ── */
-/* Flows inline as the last line of the screen, like a real prompt. */
-.input-line {
+/* ── command bar ── */
+/* Pinned below the screen instead of inside it. Keeping the field out of
+   the scroller means focusing it can no longer drag the output around,
+   and the whole bar is a large, obvious tap target that opens the
+   Android keyboard natively. */
+.input-bar {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
-  margin-top: 2px;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 920px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: #05100a;
+  border: 1px solid #1c3a26;
+  border-top: 2px solid #2c4a35;
+  border-radius: 6px;
+  cursor: text;
+}
+
+.input-bar:hover {
+  border-color: #2c4a35;
+  box-shadow:
+    0 0 22px rgba(0, 255, 65, 0.16),
+    0 0 4px rgba(0, 255, 65, 0.35);
 }
 
 .cmd-input {
-  flex: 0 1 auto;
-  min-width: 1ch;
-  max-width: 100%;
-  background: transparent;
-  border: none;
-  outline: none;
-  padding: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  background: #020a05;
+  border: 1px solid #1c3a26;
+  border-radius: 4px;
+  /* A real, comfortable touch target: at least a 44px tap area. */
+  padding: 10px 12px;
+  min-height: 44px;
   color: #e8ffe8;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 16px;
   cursor: text;
-  /* The blinking block below is the caret, so the native one is hidden
-     to avoid two cursors fighting for the same spot. */
-  caret-color: transparent;
+  caret-color: #00ff41;
 }
 
-/* Typing indicator: a blinking block right after the typed text. */
-.block-caret {
-  flex: 0 0 auto;
-  width: 1ch;
-  color: #00ff41;
-  animation: caret-blink 1.06s step-end infinite;
-}
-
-@keyframes caret-blink {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
-  }
+.cmd-input:focus {
+  outline: none;
+  border-color: #00ff41;
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.35);
 }
 </style>
