@@ -29,7 +29,6 @@
       </div>
 
       <div class="input-bar" @pointerdown="focusInput">
-        <span class="prompt">visitor@localhost:<span class="path">~</span>$</span>
         <input
           id="cmd"
           ref="inputEl"
